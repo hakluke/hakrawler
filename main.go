@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"github.com/gocolly/colly"
+	. "github.com/logrusorgru/aurora"
 )
 
 func main() {
@@ -37,14 +38,14 @@ func main() {
 					fmt.Println(err)
 				}
 				if strings.Contains(urlObj.Host,*domainPtr){ 
-					fmt.Println("[url]", urlString)
+					fmt.Println(BrightYellow("[url]"), urlString)
 					urls[urlString] = struct{}{}
 				}
 				// If this is a new subdomain, print it
 				if _, ok := subdomains[urlObj.Host]; !ok {
 					if urlObj.Host != ""{
 						if strings.Contains(urlObj.Host, *domainPtr){
-							fmt.Println("[subdomain]" , urlObj.Host)
+							fmt.Println(BrightGreen("[subdomain]") , urlObj.Host)
 							subdomains[urlObj.Host] = struct{}{}
 						}
 					}
@@ -60,7 +61,7 @@ func main() {
 			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
 			if _, ok := jsfiles[jsfile]; !ok {
 				if jsfile != ""{
-					fmt.Println("[javascript]", jsfile)
+					fmt.Println(BrightRed("[javascript]"), jsfile)
 					jsfiles[jsfile] = struct{}{}
 				}
 			}
@@ -70,4 +71,3 @@ func main() {
 	c.Visit("http://" + *domainPtr)
 	c.Visit("https://" + *domainPtr)
 }
-
