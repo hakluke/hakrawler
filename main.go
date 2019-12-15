@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"flag"
+	"net/url"
+	"strings"
 	"github.com/gocolly/colly"
 )
 
@@ -13,43 +15,59 @@ func main() {
 	includeJSPtr := flag.Bool("js", false, "Include links to utilised JavaScript files")
 	flag.Parse()
 
-	var domain string = *domainPtr 
-
+	// These will store the discovered assets to avoid duplicates
 	urls := make(map[string]struct{})
+	subdomains := make(map[string]struct{})
+	jsfiles := make(map[string]struct{})
 
+	// The Colly collector
 	c := colly.NewCollector(
-		colly.AllowedDomains(domain, "www." + domain),
 		colly.MaxDepth(*depthPtr),
+		colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"),
 	)
 
-	// Find and visit all links
+	// Find and visit the links
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		var url string = e.Request.AbsoluteURL(e.Attr("href"))
+		var urlString string = e.Request.AbsoluteURL(e.Attr("href"))
 		// If the url isn't already there, print and save it
-		if _, ok := urls[url]; !ok {
-			if url != ""{
-				fmt.Println(url)
-				urls[url] = struct{}{}
+		if _, ok := urls[urlString]; !ok {
+			if urlString != ""{
+				var urlObj, err = url.Parse(urlString) 
+				if err != nil {
+					fmt.Println(err)
+				}
+				if strings.Contains(urlObj.Host,*domainPtr){ 
+					fmt.Println("[url]", urlString)
+					urls[urlString] = struct{}{}
+				}
+				// If this is a new subdomain, print it
+				if _, ok := subdomains[urlObj.Host]; !ok {
+					if urlObj.Host != ""{
+						if strings.Contains(urlObj.Host, *domainPtr){
+							fmt.Println("[subdomain]" , urlObj.Host)
+							subdomains[urlObj.Host] = struct{}{}
+						}
+					}
+				}
 			}
+			e.Request.Visit(e.Attr("href"))
 		}
-		//fmt.Println(e.Request.AbsoluteURL(e.Attr("href")))
-		e.Request.Visit(e.Attr("href"))
 	})
 
 	// Find and print all the JS files if "-js" is flagged
 	if *includeJSPtr{
 		c.OnHTML("script[src]", func(e *colly.HTMLElement) {
-			fmt.Println(e.Request.AbsoluteURL(e.Attr("src")))
+			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
+			if _, ok := jsfiles[jsfile]; !ok {
+				if jsfile != ""{
+					fmt.Println("[javascript]", jsfile)
+					jsfiles[jsfile] = struct{}{}
+				}
+			}
 		})
 	}
 
-	// print each URL that is being visited
-	//c.OnRequest(func(r *colly.Request) {
-	//	fmt.Println("### VISITING ", r.URL)
-	//})
-
 	c.Visit("http://" + *domainPtr)
 	c.Visit("https://" + *domainPtr)
-
 }
 
