@@ -14,7 +14,15 @@ func main() {
 	domainPtr := flag.String("domain", "http://127.0.0.1", "Domain to crawl")
 	depthPtr := flag.Int("depth", 1, "Maximum depth to crawl")
 	includeJSPtr := flag.Bool("js", false, "Include links to utilised JavaScript files")
+	includeSubsPtr := flag.Bool("subs", false, "Include subdomains")
+	includeURLsPtr := flag.Bool("urls", false, "Include URLs")
+	includeAllPtr := flag.Bool("all", true, "Include everything")
 	flag.Parse()
+
+	// Set up the bools
+	if *includeJSPtr || *includeSubsPtr || *includeURLsPtr{
+		*includeAllPtr = false
+	}
 
 	// These will store the discovered assets to avoid duplicates
 	urls := make(map[string]struct{})
@@ -30,23 +38,27 @@ func main() {
 	// Find and visit the links
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		var urlString string = e.Request.AbsoluteURL(e.Attr("href"))
-		// If the url isn't already there, print and save it
+		// If the url isn't already there, print and save it, if it's a new subdomain, print that too
 		if _, ok := urls[urlString]; !ok {
 			if urlString != ""{
 				var urlObj, err = url.Parse(urlString) 
 				if err != nil {
 					fmt.Println(err)
 				}
-				if strings.Contains(urlObj.Host,*domainPtr){ 
-					fmt.Println(BrightYellow("[url]"), urlString)
-					urls[urlString] = struct{}{}
+				if *includeURLsPtr || *includeAllPtr {
+					if strings.Contains(urlObj.Host,*domainPtr){ 
+						fmt.Println(BrightYellow("[url]"), urlString)
+						urls[urlString] = struct{}{}
+					}
 				}
 				// If this is a new subdomain, print it
-				if _, ok := subdomains[urlObj.Host]; !ok {
-					if urlObj.Host != ""{
-						if strings.Contains(urlObj.Host, *domainPtr){
-							fmt.Println(BrightGreen("[subdomain]") , urlObj.Host)
-							subdomains[urlObj.Host] = struct{}{}
+				if *includeSubsPtr || *includeAllPtr {
+					if _, ok := subdomains[urlObj.Host]; !ok {
+						if urlObj.Host != ""{
+							if strings.Contains(urlObj.Host, *domainPtr){
+								fmt.Println(BrightGreen("[subdomain]") , urlObj.Host)
+								subdomains[urlObj.Host] = struct{}{}
+							}
 						}
 					}
 				}
@@ -56,7 +68,7 @@ func main() {
 	})
 
 	// Find and print all the JS files if "-js" is flagged
-	if *includeJSPtr{
+	if *includeJSPtr || *includeAllPtr {
 		c.OnHTML("script[src]", func(e *colly.HTMLElement) {
 			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
 			if _, ok := jsfiles[jsfile]; !ok {
