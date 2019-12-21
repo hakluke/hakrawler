@@ -3,11 +3,27 @@ package main
 import (
 	"fmt"
 	"flag"
+	"regexp"
 	"net/url"
+	"net/http"
 	"strings"
+	"io/ioutil"
 	"github.com/gocolly/colly"
 	. "github.com/logrusorgru/aurora"
 )
+
+func banner(){
+	fmt.Print(BrightRed(`
+██╗  ██╗ █████╗ ██╗  ██╗██████╗  █████╗ ██╗    ██╗██╗     ███████╗██████╗ 
+██║  ██║██╔══██╗██║ ██╔╝██╔══██╗██╔══██╗██║    ██║██║     ██╔════╝██╔══██╗
+███████║███████║█████╔╝ ██████╔╝███████║██║ █╗ ██║██║     █████╗  ██████╔╝
+██╔══██║██╔══██║██╔═██╗ ██╔══██╗██╔══██║██║███╗██║██║     ██╔══╝  ██╔══██╗
+██║  ██║██║  ██║██║  ██╗██║  ██║██║  ██║╚███╔███╔╝███████╗███████╗██║  ██║
+╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝ ╚══════╝╚══════╝╚═╝  ╚═╝
+`))
+	fmt.Println(BgBlue(BrightYellow("                        Crafted with <3 by hakluke                        ")))
+	fmt.Println(" ")
+}
 
 func colorPrint(tag Value, msg string){
 	fmt.Println(tag, msg)
@@ -32,7 +48,63 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 	}
 }
 
+func parseRobots(domain string, depth int, c colly.Collector){
+	schemas := [2]string{"http://", "https://"}
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+	}}
+	var robotsurls []string
+	for _, schema := range schemas {
+			robotsURL := schema+domain+"/robots.txt"
+			nextURL := robotsURL
+
+		for {
+			resp, err := client.Get(nextURL)	
+			if err!=nil {
+				fmt.Println(err, resp.StatusCode)
+				break	
+			}
+			if schema == "http://" && strings.Contains(resp.Header.Get("Location"), "https://"){
+				break
+			}
+			if resp.StatusCode == 200{
+				body, err := ioutil.ReadAll(resp.Body)
+				if err != nil{
+					print(err)
+					return
+				}
+				lines := strings.Split(string(body), "\n")
+
+				var re = regexp.MustCompile(".*llow: ")
+				for _, line := range lines {
+					if strings.Contains(line, "llow: "){
+						urlstring := re.ReplaceAllString(line, "")
+						fmt.Println(BrightMagenta("[robots]"), schema + domain + urlstring)
+						//add it to a slice for parsing later
+						robotsurls = append(robotsurls, schema + domain + urlstring)
+						//robots[schema + domain + urlstring] = struct{}{}
+					}
+				}
+				break
+			} else {
+				nextURL = resp.Header.Get("Location")
+			}
+		}
+	}
+	// if depth is greater than 1, add all of the robots urls as seeds
+	if depth > 1 {
+		for _, robotsurl := range robotsurls{
+			c.Visit(robotsurl)
+		}
+	}
+}
+
 func main() {
+
+	// Print the banner
+	banner()
+
 	// Define and parse command line flags
 	domainPtr := flag.String("domain", "", "Domain to crawl")
 	depthPtr := flag.Int("depth", 1, "Maximum depth to crawl")
@@ -41,13 +113,14 @@ func main() {
 	includeSubsPtr := flag.Bool("subs", false, "Include subdomains")
 	includeURLsPtr := flag.Bool("urls", false, "Include URLs")
 	includeFormsPtr := flag.Bool("forms", false, "Include form actions")
+	includeRobotsPtr := flag.Bool("robots", false, "Include robots.txt entries")
 	includeAllPtr := flag.Bool("all", true, "Include everything")
 	scopePtr := flag.String("scope", "loose", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nloose = everything")
 
 	flag.Parse()
 
 	// Set up the bools
-	if *includeJSPtr || *includeSubsPtr || *includeURLsPtr || *includeFormsPtr{
+	if *includeJSPtr || *includeSubsPtr || *includeURLsPtr || *includeFormsPtr || *includeRobotsPtr{
 		*includeAllPtr = false
 	}
 
@@ -56,6 +129,7 @@ func main() {
 	subdomains := make(map[string]struct{})
 	jsfiles := make(map[string]struct{})
 	forms := make(map[string]struct{})
+	//robots := make(map[string]struct{})
 
 	// The Colly collector
 	c := colly.NewCollector(
@@ -124,6 +198,7 @@ func main() {
 		})
 	}
 
+	parseRobots(*domainPtr, *depthPtr, *c)
 	c.Visit("http://" + *domainPtr)
 	c.Visit("https://" + *domainPtr)
 }
