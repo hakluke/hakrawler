@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"github.com/gocolly/colly"
 	. "github.com/logrusorgru/aurora"
+	"github.com/yterajima/go-sitemap"
 )
 
 func banner(){
@@ -49,6 +50,33 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 	}
 }
 
+func parseSitemap(domain string, depth int, c colly.Collector, printResult bool){
+	schemas := [2]string{"http://", "https://"}
+	var sitemapurls []string
+	for _, schema := range schemas {
+		sitemapURL := schema+domain+"/sitemap.xml"
+		smap, err := sitemap.Get(sitemapURL, nil)	
+		if err!=nil {
+			fmt.Println(err)
+			break	
+		}
+		for _, URL := range smap.URL {
+			if(printResult){
+				fmt.Println(BrightBlue("[sitemap]"), URL.Loc)
+			}
+			//add it to a slice for parsing later
+			sitemapurls = append(sitemapurls, URL.Loc)
+		}
+	}
+
+	// if depth is greater than 1, add all of the sitemap urls as seeds
+	if depth > 1 {
+		for _, sitemapurl := range sitemapurls {
+			c.Visit(sitemapurl)
+		}
+	}
+}
+
 func parseRobots(domain string, depth int, c colly.Collector, printResult bool){
 	schemas := [2]string{"http://", "https://"}
 	client := &http.Client{
@@ -57,8 +85,8 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool){
 	}}
 	var robotsurls []string
 	for _, schema := range schemas {
-			robotsURL := schema+domain+"/robots.txt"
-			nextURL := robotsURL
+		robotsURL := schema+domain+"/robots.txt"
+		nextURL := robotsURL
 
 		for {
 			resp, err := client.Get(nextURL)	
@@ -117,6 +145,7 @@ func main() {
 	includeURLsPtr := flag.Bool("urls", false, "Include URLs")
 	includeFormsPtr := flag.Bool("forms", false, "Include form actions")
 	includeRobotsPtr := flag.Bool("robots", false, "Include robots.txt entries")
+	includeSitemapPtr := flag.Bool("sitemap", false, "Include sitemap.xml entries")
 	includeAllPtr := flag.Bool("all", true, "Include everything")
 	scopePtr := flag.String("scope", "loose", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nloose = everything")
 
@@ -130,7 +159,7 @@ func main() {
 	}
 
 	// set up the bools
-	if *includeJSPtr || *includeSubsPtr || *includeURLsPtr || *includeFormsPtr || *includeRobotsPtr {
+	if *includeJSPtr || *includeSubsPtr || *includeURLsPtr || *includeFormsPtr || *includeRobotsPtr || *includeSitemapPtr {
 		*includeAllPtr = false
 	}
 
@@ -160,7 +189,6 @@ func main() {
 				}
 				if *includeURLsPtr || *includeAllPtr {
 					printIfInScope(*scopePtr,BrightYellow("[url]"),*domainPtr,urlString)
-					//fmt.Println(BrightYellow("[url]"), urlString)
 					urls[urlString] = struct{}{}
 				}
 				// if this is a new subdomain, print it
@@ -186,7 +214,6 @@ func main() {
 			if _, ok := jsfiles[jsfile]; !ok {
 				if jsfile != ""{
 					printIfInScope(*scopePtr,BrightRed("[javascript]"),*domainPtr,jsfile)
-					//fmt.Println(BrightRed("[javascript]"), jsfile)
 					jsfiles[jsfile] = struct{}{}
 				}
 			}
@@ -215,8 +242,17 @@ func main() {
 		printRobots = false	
 	}	
 
+	// figure out of the results from sitemap.xml should be printed
+	var printSitemap bool
+	if *includeSitemapPtr || *includeAllPtr {
+		printSitemap = true
+	} else {
+		printSitemap = false
+	}
+
 	// do all the things
 	parseRobots(*domainPtr, *depthPtr, *c, printRobots)
+	parseSitemap(*domainPtr, *depthPtr, *c, printSitemap)
 	c.Visit("http://" + *domainPtr)
 	c.Visit("https://" + *domainPtr)
 }
