@@ -4,10 +4,11 @@ import (
 	"os"
 	"fmt"
 	"flag"
+	"sync"
 	"regexp"
+	"strings"
 	"net/url"
 	"net/http"
-	"strings"
 	"io/ioutil"
 	"github.com/gocolly/colly"
 	. "github.com/logrusorgru/aurora"
@@ -35,7 +36,8 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 	var urlObj, err = url.Parse(msg)
 	if err != nil {
 		fmt.Println(err)
-	}
+		return
+	} 
 	switch scope {
 	case "strict":
 		if urlObj.Host == domain {
@@ -50,14 +52,14 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 	}
 }
 
-func parseSitemap(domain string, depth int, c colly.Collector, printResult bool){
+func parseSitemap(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup){
+	defer mainwg.Done()
 	schemas := [2]string{"http://", "https://"}
 	var sitemapurls []string
 	for _, schema := range schemas {
 		sitemapURL := schema+domain+"/sitemap.xml"
 		smap, err := sitemap.Get(sitemapURL, nil)	
 		if err!=nil {
-			fmt.Println(err)
 			break	
 		}
 		for _, URL := range smap.URL {
@@ -77,7 +79,8 @@ func parseSitemap(domain string, depth int, c colly.Collector, printResult bool)
 	}
 }
 
-func parseRobots(domain string, depth int, c colly.Collector, printResult bool){
+func parseRobots(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup){
+	defer mainwg.Done()
 	schemas := [2]string{"http://", "https://"}
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -147,7 +150,7 @@ func main() {
 	includeRobotsPtr := flag.Bool("robots", false, "Include robots.txt entries")
 	includeSitemapPtr := flag.Bool("sitemap", false, "Include sitemap.xml entries")
 	includeAllPtr := flag.Bool("all", true, "Include everything")
-	scopePtr := flag.String("scope", "loose", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nloose = everything")
+	scopePtr := flag.String("scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nloose = everything")
 
 	flag.Parse()
 
@@ -184,20 +187,22 @@ func main() {
 		if _, ok := urls[urlString]; !ok {
 			if urlString != ""{
 				var urlObj, err = url.Parse(urlString) 
+				// ditch unparseable URLs
 				if err != nil {
 					fmt.Println(err)
-				}
-				if *includeURLsPtr || *includeAllPtr {
-					printIfInScope(*scopePtr,BrightYellow("[url]"),*domainPtr,urlString)
-					urls[urlString] = struct{}{}
-				}
-				// if this is a new subdomain, print it
-				if *includeSubsPtr || *includeAllPtr {
-					if _, ok := subdomains[urlObj.Host]; !ok {
-						if urlObj.Host != ""{
-							if strings.Contains(urlObj.Host, *domainPtr){
-								printIfInScope(*scopePtr,BrightGreen("[subdomain]"),*domainPtr,urlObj.Host)
-								subdomains[urlObj.Host] = struct{}{}
+				} else {
+					if *includeURLsPtr || *includeAllPtr {
+						printIfInScope(*scopePtr,BrightYellow("[url]"),*domainPtr,urlString)
+						urls[urlString] = struct{}{}
+					}
+					// if this is a new subdomain, print it
+					if *includeSubsPtr || *includeAllPtr {
+						if _, ok := subdomains[urlObj.Host]; !ok {
+							if urlObj.Host != ""{
+								if strings.Contains(urlObj.Host, *domainPtr){
+									printIfInScope(*scopePtr,BrightGreen("[subdomain]"),*domainPtr,urlObj.Host)
+									subdomains[urlObj.Host] = struct{}{}
+								}
 							}
 						}
 					}
@@ -234,6 +239,8 @@ func main() {
 		})
 	}
 
+
+
 	// figure out if the results from robots.txt should be printed
 	var printRobots bool
     if *includeRobotsPtr || *includeAllPtr {
@@ -251,8 +258,43 @@ func main() {
 	}
 
 	// do all the things
-	parseRobots(*domainPtr, *depthPtr, *c, printRobots)
-	parseSitemap(*domainPtr, *depthPtr, *c, printSitemap)
-	c.Visit("http://" + *domainPtr)
-	c.Visit("https://" + *domainPtr)
+	// =================
+
+	// setup a waitgroup to run all methods at the same time
+	var mainwg sync.WaitGroup
+	mainwg.Add(5)
+
+	// robots.txt
+	go parseRobots(*domainPtr, *depthPtr, *c, printRobots, &mainwg)
+
+	// sitemap.xml
+	go parseSitemap(*domainPtr, *depthPtr, *c, printSitemap, &mainwg)
+
+	// waybackurls
+	go func(){
+		defer mainwg.Done()	
+		// get results from waybackurls
+		waybackurls := WaybackURLs(*domainPtr)
+
+		// print wayback results, if depth >1, also add them to the crawl queue
+		for _, waybackurl := range waybackurls {
+			printIfInScope(*scopePtr, Yellow("[wayback]"), *domainPtr, waybackurl)	
+			if *depthPtr > 1{
+				c.Visit(waybackurl)
+			}
+		}
+	}() 
+
+	// colly
+	go func(){
+		defer mainwg.Done()
+		c.Visit("http://" + *domainPtr)
+	}()
+	
+	go func(){
+		defer mainwg.Done()
+		c.Visit("https://" + *domainPtr)
+	}()
+
+	mainwg.Wait()
 }
