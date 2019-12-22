@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"fmt"
 	"flag"
 	"regexp"
@@ -48,7 +49,7 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 	}
 }
 
-func parseRobots(domain string, depth int, c colly.Collector){
+func parseRobots(domain string, depth int, c colly.Collector, printResult bool){
 	schemas := [2]string{"http://", "https://"}
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -62,7 +63,7 @@ func parseRobots(domain string, depth int, c colly.Collector){
 		for {
 			resp, err := client.Get(nextURL)	
 			if err!=nil {
-				fmt.Println(err, resp.StatusCode)
+				fmt.Println(err)
 				break	
 			}
 			if schema == "http://" && strings.Contains(resp.Header.Get("Location"), "https://"){
@@ -80,10 +81,11 @@ func parseRobots(domain string, depth int, c colly.Collector){
 				for _, line := range lines {
 					if strings.Contains(line, "llow: "){
 						urlstring := re.ReplaceAllString(line, "")
-						fmt.Println(BrightMagenta("[robots]"), schema + domain + urlstring)
+						if(printResult){
+							fmt.Println(BrightMagenta("[robots]"), schema + domain + urlstring)
+						}
 						//add it to a slice for parsing later
 						robotsurls = append(robotsurls, schema + domain + urlstring)
-						//robots[schema + domain + urlstring] = struct{}{}
 					}
 				}
 				break
@@ -102,12 +104,13 @@ func parseRobots(domain string, depth int, c colly.Collector){
 
 func main() {
 
-	// Print the banner
+	// print the banner
 	banner()
 
-	// Define and parse command line flags
+	// define and parse command line flags
 	domainPtr := flag.String("domain", "", "Domain to crawl")
 	depthPtr := flag.Int("depth", 1, "Maximum depth to crawl")
+
 	// which data to include in output?
 	includeJSPtr := flag.Bool("js", false, "Include links to utilised JavaScript files")
 	includeSubsPtr := flag.Bool("subs", false, "Include subdomains")
@@ -119,28 +122,36 @@ func main() {
 
 	flag.Parse()
 
-	// Set up the bools
-	if *includeJSPtr || *includeSubsPtr || *includeURLsPtr || *includeFormsPtr || *includeRobotsPtr{
+	// make sure the domain has been set
+	if *domainPtr == "" {
+		fmt.Println(BrightRed("[error]"), "You must set a domain, e.g. -domain=example.com")
+		fmt.Println(BrightBlue("[info]"), "See hakrawler -h for commandline options")
+		os.Exit(1)
+	}
+
+	// set up the bools
+	if *includeJSPtr || *includeSubsPtr || *includeURLsPtr || *includeFormsPtr || *includeRobotsPtr {
 		*includeAllPtr = false
 	}
 
-	// These will store the discovered assets to avoid duplicates
+	// these will store the discovered assets to avoid duplicates
 	urls := make(map[string]struct{})
 	subdomains := make(map[string]struct{})
 	jsfiles := make(map[string]struct{})
 	forms := make(map[string]struct{})
-	//robots := make(map[string]struct{})
+	//robots := make(map[string]struct{}) // probably don't need this...
 
-	// The Colly collector
+	// behold, the colly collector
 	c := colly.NewCollector(
 		colly.MaxDepth(*depthPtr),
+		// this is not fooling anyone
 		colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"),
 	)
 
-	// Find and visit the links
+	// find and visit the links
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		var urlString string = e.Request.AbsoluteURL(e.Attr("href"))
-		// If the url isn't already there, print and save it, if it's a new subdomain, print that too
+		// if the url isn't already there, print and save it, if it's a new subdomain, print that too
 		if _, ok := urls[urlString]; !ok {
 			if urlString != ""{
 				var urlObj, err = url.Parse(urlString) 
@@ -152,13 +163,12 @@ func main() {
 					//fmt.Println(BrightYellow("[url]"), urlString)
 					urls[urlString] = struct{}{}
 				}
-				// If this is a new subdomain, print it
+				// if this is a new subdomain, print it
 				if *includeSubsPtr || *includeAllPtr {
 					if _, ok := subdomains[urlObj.Host]; !ok {
 						if urlObj.Host != ""{
 							if strings.Contains(urlObj.Host, *domainPtr){
 								printIfInScope(*scopePtr,BrightGreen("[subdomain]"),*domainPtr,urlObj.Host)
-								//fmt.Println(BrightGreen("[subdomain]") , urlObj.Host)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -169,7 +179,7 @@ func main() {
 		}
 	})
 
-	// Find and print all the JS files if "-js" is flagged
+	// find and print all the JavaScript files
 	if *includeJSPtr || *includeAllPtr {
 		c.OnHTML("script[src]", func(e *colly.HTMLElement) {
 			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
@@ -184,21 +194,29 @@ func main() {
 	}
 
 
-	// Find and print all the form action URLs 
+	// find and print all the form action URLs 
 	if *includeFormsPtr || *includeAllPtr {
 		c.OnHTML("form[action]", func(e *colly.HTMLElement) {
 			form := e.Request.AbsoluteURL(e.Attr("action"))
 			if _, ok := forms[form]; !ok {
 				if form != ""{
 					printIfInScope(*scopePtr,BrightCyan("[form]"),*domainPtr,form)
-					//fmt.Println(BrightCyan("[Form]"), form)
 					forms[form] = struct{}{}
 				}
 			}
 		})
 	}
 
-	parseRobots(*domainPtr, *depthPtr, *c)
+	// figure out if the results from robots.txt should be printed
+	var printRobots bool
+    if *includeRobotsPtr || *includeAllPtr {
+		printRobots = true	
+	} else {
+		printRobots = false	
+	}	
+
+	// do all the things
+	parseRobots(*domainPtr, *depthPtr, *c, printRobots)
 	c.Visit("http://" + *domainPtr)
 	c.Visit("https://" + *domainPtr)
 }
