@@ -39,6 +39,7 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 	} else {
 		schema = ""
 	}
+
 	var urlObj, err = url.Parse(schema + msg)
 	if err != nil {
 		// the url can't be parsed, move on with reckless abandon
@@ -58,23 +59,20 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 	}
 }
 
-func parseSitemap(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup){
+func parseSitemap(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string){
 	defer mainwg.Done()
-	schemas := [2]string{"http://", "https://"}
 	var sitemapurls []string
-	for _, schema := range schemas {
-		sitemapURL := schema+domain+"/sitemap.xml"
-		smap, err := sitemap.Get(sitemapURL, nil)	
-		if err!=nil {
-			break	
+	sitemapURL := schema+domain+"/sitemap.xml"
+	smap, err := sitemap.Get(sitemapURL, nil)	
+	if err!=nil {
+		return
+	}
+	for _, URL := range smap.URL {
+		if(printResult){
+			fmt.Println(BrightBlue("[sitemap]"), URL.Loc)
 		}
-		for _, URL := range smap.URL {
-			if(printResult){
-				fmt.Println(BrightBlue("[sitemap]"), URL.Loc)
-			}
-			//add it to a slice for parsing later
-			sitemapurls = append(sitemapurls, URL.Loc)
-		}
+		//add it to a slice for parsing later
+		sitemapurls = append(sitemapurls, URL.Loc)
 	}
 
 	// if depth is greater than 1, add all of the sitemap urls as seeds
@@ -85,49 +83,31 @@ func parseSitemap(domain string, depth int, c colly.Collector, printResult bool,
 	}
 }
 
-func parseRobots(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup){
+func parseRobots(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string){
 	defer mainwg.Done()
-	schemas := [2]string{"http://", "https://"}
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-	}}
 	var robotsurls []string
-	for _, schema := range schemas {
-		robotsURL := schema+domain+"/robots.txt"
-		nextURL := robotsURL
+	robotsURL := schema+domain+"/robots.txt"
 
-		for {
-			resp, err := client.Get(nextURL)	
-			if err!=nil {
-				// this isn't a URL, move on with reckless abandon
-				break	
-			}
-			if schema == "http://" && strings.Contains(resp.Header.Get("Location"), "https://"){
-				break
-			}
-			if resp.StatusCode == 200{
-				body, err := ioutil.ReadAll(resp.Body)
-				if err != nil{
-					print(err, "#####")
-					return
-				}
-				lines := strings.Split(string(body), "\n")
+	resp, err := http.Get(robotsURL)	
+	if err!=nil {
+		return
+	}
+	if resp.StatusCode == 200{
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil{
+			return
+		}
+		lines := strings.Split(string(body), "\n")
 
-				var re = regexp.MustCompile(".*llow: ")
-				for _, line := range lines {
-					if strings.Contains(line, "llow: "){
-						urlstring := re.ReplaceAllString(line, "")
-						if(printResult){
-							fmt.Println(BrightMagenta("[robots]"), schema + domain + urlstring)
-						}
-						//add it to a slice for parsing later
-						robotsurls = append(robotsurls, schema + domain + urlstring)
-					}
+		var re = regexp.MustCompile(".*llow: ")
+		for _, line := range lines {
+			if strings.Contains(line, "llow: "){
+				urlstring := re.ReplaceAllString(line, "")
+				if(printResult){
+					fmt.Println(BrightMagenta("[robots]"), schema + domain + urlstring)
 				}
-				break
-			} else {
-				nextURL = resp.Header.Get("Location")
+				//add it to a slice for parsing later
+				robotsurls = append(robotsurls, schema + domain + urlstring)
 			}
 		}
 	}
@@ -157,6 +137,7 @@ func main() {
 	includeSitemapPtr := flag.Bool("sitemap", false, "Include sitemap.xml entries")
 	includeAllPtr := flag.Bool("all", true, "Include everything")
 	scopePtr := flag.String("scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nloose = everything")
+	schemaPtr := flag.String("schema", "http", "Schema, http or https")
 
 	flag.Parse()
 
@@ -165,6 +146,12 @@ func main() {
 		fmt.Println(BrightRed("[error]"), "You must set a domain, e.g. -domain=example.com")
 		fmt.Println(BrightBlue("[info]"), "See hakrawler -h for commandline options")
 		os.Exit(1)
+	}
+
+	// set up the schema
+	schema := "http://"
+	if *schemaPtr == "https"{
+		schema = "https://"
 	}
 
 	// set up the bools
@@ -267,11 +254,11 @@ func main() {
 
 	// robots.txt
 	mainwg.Add(1)
-	go parseRobots(*domainPtr, *depthPtr, *c, printRobots, &mainwg)
+	go parseRobots(*domainPtr, *depthPtr, *c, printRobots, &mainwg, schema)
 
 	// sitemap.xml
 	mainwg.Add(1)
-	go parseSitemap(*domainPtr, *depthPtr, *c, printSitemap, &mainwg)
+	go parseSitemap(*domainPtr, *depthPtr, *c, printSitemap, &mainwg, schema)
 
 	// waybackurls
 	go func(){
@@ -309,14 +296,8 @@ func main() {
 	go func(){
 		mainwg.Add(1)
 		defer mainwg.Done()
-		c.Visit("http://" + *domainPtr)
+		c.Visit(schema + *domainPtr)
 	}()
 	
-	go func(){
-		mainwg.Add(1)
-		defer mainwg.Done()
-		c.Visit("https://" + *domainPtr)
-	}()
-
 	mainwg.Wait()
 }
