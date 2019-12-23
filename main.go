@@ -33,9 +33,15 @@ func colorPrint(tag Value, msg string){
 }
 
 func printIfInScope(scope string, tag Value, domain string, msg string){
-	var urlObj, err = url.Parse(msg)
+	var schema string
+	if !strings.Contains(msg, "http"){
+		schema = "https://"
+	} else {
+		schema = ""
+	}
+	var urlObj, err = url.Parse(schema + msg)
 	if err != nil {
-		fmt.Println(err)
+		// the url can't be parsed, move on with reckless abandon
 		return
 	} 
 	switch scope {
@@ -94,7 +100,7 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool, 
 		for {
 			resp, err := client.Get(nextURL)	
 			if err!=nil {
-				fmt.Println(err)
+				// this isn't a URL, move on with reckless abandon
 				break	
 			}
 			if schema == "http://" && strings.Contains(resp.Header.Get("Location"), "https://"){
@@ -103,7 +109,7 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool, 
 			if resp.StatusCode == 200{
 				body, err := ioutil.ReadAll(resp.Body)
 				if err != nil{
-					print(err)
+					print(err, "#####")
 					return
 				}
 				lines := strings.Split(string(body), "\n")
@@ -199,10 +205,8 @@ func main() {
 					if *includeSubsPtr || *includeAllPtr {
 						if _, ok := subdomains[urlObj.Host]; !ok {
 							if urlObj.Host != ""{
-								if strings.Contains(urlObj.Host, *domainPtr){
-									printIfInScope(*scopePtr,BrightGreen("[subdomain]"),*domainPtr,urlObj.Host)
-									subdomains[urlObj.Host] = struct{}{}
-								}
+								printIfInScope(*scopePtr,BrightGreen("[subdomain]"),*domainPtr,urlObj.Host)
+								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
 					}
@@ -258,20 +262,20 @@ func main() {
 	}
 
 	// do all the things
-	// =================
-
 	// setup a waitgroup to run all methods at the same time
 	var mainwg sync.WaitGroup
-	mainwg.Add(5)
 
 	// robots.txt
+	mainwg.Add(1)
 	go parseRobots(*domainPtr, *depthPtr, *c, printRobots, &mainwg)
 
 	// sitemap.xml
+	mainwg.Add(1)
 	go parseSitemap(*domainPtr, *depthPtr, *c, printSitemap, &mainwg)
 
 	// waybackurls
 	go func(){
+		mainwg.Add(1)
 		defer mainwg.Done()	
 		// get results from waybackurls
 		waybackurls := WaybackURLs(*domainPtr)
@@ -279,6 +283,22 @@ func main() {
 		// print wayback results, if depth >1, also add them to the crawl queue
 		for _, waybackurl := range waybackurls {
 			printIfInScope(*scopePtr, Yellow("[wayback]"), *domainPtr, waybackurl)	
+			// if this is a new subdomain, print it
+			urlObj, err := url.Parse(waybackurl)
+			if err != nil {
+				continue	
+			}
+
+			if *includeSubsPtr || *includeAllPtr {
+				if _, ok := subdomains[urlObj.Host]; !ok {
+					if urlObj.Host != ""{
+						if strings.Contains(urlObj.Host, *domainPtr){
+							printIfInScope(*scopePtr,BrightGreen("[subdomain]"),*domainPtr,urlObj.Host)
+							subdomains[urlObj.Host] = struct{}{}
+						}
+					}
+				}
+			}
 			if *depthPtr > 1{
 				c.Visit(waybackurl)
 			}
@@ -287,11 +307,13 @@ func main() {
 
 	// colly
 	go func(){
+		mainwg.Add(1)
 		defer mainwg.Done()
 		c.Visit("http://" + *domainPtr)
 	}()
 	
 	go func(){
+		mainwg.Add(1)
 		defer mainwg.Done()
 		c.Visit("https://" + *domainPtr)
 	}()
