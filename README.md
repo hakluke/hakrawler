@@ -10,7 +10,7 @@ Usage of hakrawler:
   -domain string
     	Domain to crawl (default "http://127.0.0.1")
   -js
-    	Include links to utilised JavaScript files
+    	Include links to utilised JavaScript files and exclude all other details
 ```
 
 ## Example
