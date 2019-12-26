@@ -50,8 +50,12 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 		if urlObj.Host == domain {
 			colorPrint(tag, msg)
 		}
-	case "subs":
+	case "fuzzy":
 		if strings.Contains(urlObj.Host, domain) {
+			colorPrint(tag, msg)
+		}
+	case "subs":
+		if strings.Contains(urlObj.Host, "."+domain) {
 			colorPrint(tag, msg)
 		}
 	default:
@@ -134,10 +138,11 @@ func main() {
 	includeFormsPtr := flag.Bool("forms", false, "Include form actions")
 	includeRobotsPtr := flag.Bool("robots", false, "Include robots.txt entries")
 	includeSitemapPtr := flag.Bool("sitemap", false, "Include sitemap.xml entries")
+	includeWaybackPtr := flag.Bool("wayback", false, "Include wayback machine entries")
 	includeAllPtr := flag.Bool("all", true, "Include everything")
-	scopePtr := flag.String("scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nloose = everything")
+	scopePtr := flag.String("scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nfuzzy = anything containing the supplied domain\nyolo = everything")
 	schemaPtr := flag.String("schema", "http", "Schema, http or https")
-	wayback := flag.Bool("wayback", false, "Use wayback machine URLs as seeds")
+	wayback := flag.Bool("usewayback", false, "Use wayback machine URLs as seeds")
 	plain := flag.Bool("plain", false, "Don't use colours or print the banner, easier for parsing")
 	flag.Parse()
 
@@ -277,7 +282,7 @@ func main() {
 
 			// print wayback results, if depth >1, also add them to the crawl queue
 			for _, waybackurl := range waybackurls {
-				if *includeSubsPtr || *includeAllPtr {
+				if *includeWaybackPtr || *includeAllPtr {
 					printIfInScope(*scopePtr, au.Yellow("[wayback]"), *domainPtr, waybackurl)	
 				}
 				// if this is a new subdomain, print it
