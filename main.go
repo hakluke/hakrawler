@@ -25,7 +25,6 @@ func banner(au Aurora){
 ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝ ╚══════╝╚══════╝╚═╝  ╚═╝
 `))
 	fmt.Println(BgBlue(au.BrightYellow("                        Crafted with <3 by hakluke                        ")))
-	fmt.Println(" ")
 }
 
 func colorPrint(tag Value, msg string){
