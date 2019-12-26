@@ -55,7 +55,7 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 			colorPrint(tag, msg)
 		}
 	case "subs":
-		if strings.Contains(urlObj.Host, "."+domain) {
+		if strings.HasSuffix(urlObj.Host, domain) {
 			colorPrint(tag, msg)
 		}
 	default:
