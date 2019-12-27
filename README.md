@@ -2,6 +2,21 @@
 
 Simple, fast web crawler written in Golang
 
+## Features
+
+- Unlimited, fast web crawling for endpoint discovery
+- Fuzzy matching for subdomain discovery
+- robots.txt parsing
+- sitemap.xml parsing
+- Plain output for easy parsing into other tools
+
+## Upcoming features
+
+- Accept domains from stdin for easier tool chaining
+- Better output formats (especially JSON and CSV)
+- Link gathering from JavaScript files
+- Custom headers (for including cookie + auth headers, bypassing firewalls, etc.)
+
 ## Credits
 
 - @codingo and @prodigysml, my favourite people to hack with. A constant source of ideas and inspiration. They also provided beta testing and a sounding board for this tool in development.
