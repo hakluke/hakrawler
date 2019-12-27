@@ -80,6 +80,8 @@ Note that if you need to do this, you probably want to add your Go bin directory
 
 ### Image:
 
+Command: `hakrawler -domain bugcrowd.com -depth 1`
+
 ![sample output](./hakrawler-output-sample.png)
 
 ### Full text output:
