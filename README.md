@@ -1,52 +1,177 @@
-# hakrawler
-Simple web crawler written in Golang
+# HAKRAWLER 
+Simple, fast web crawler written in Golang
+
+
+## Credits
+
+- @codingo and @prodigysml, my favourite people to hack with. A constant source of ideas and inspiration. They also provided beta testing and a sounding board for this tool in development.
+- @tomnomnom who wrote waybackurls, which powers the wayback part of this tool
+- @s0md3v who wrote photon, which I took ideas from to create this tool
+- The folks from @gocolly, the library which powers the crawler engine
+- @yterajima, who wrote the sitemap.xml parser used in this tool
+
+## Installation
+1. Install Golang
+2. Run the command below
+```
+go get github.com/hakluke/hakrawler
+```
+3. Run hakrawler from your Go bin directory. For linux systems it will likely be:
+```
+~/go/bin/hakrawler
+```
+Note that if you need to do this, you probably want to add your Go bin directory to your $PATH to make things easier!
 
 ## Usage
 ```
-$ hakrawler -h
-Usage of hakrawler:
-  -depth int
-    	Maximum depth to crawl (default 1)
+  -h
+      Show usage
   -domain string
-    	Domain to crawl (default "http://127.0.0.1")
+      The domain that you wish to crawl (for example, google.com)
+  -all
+    	Include all sources in output (default true)
+      This is an alias for including all of the following options: -subs, -urls, -sitemap, -robots, -js and -forms
+  -scope string
+    	Scope to include:
+    	strict = specified domain only
+    	subs = specified domain and subdomains
+    	fuzzy = any results where the domain contains the supplied domain (for example URLs from withgoogle.com would be returned if you supply the domain google.com)
+    	yolo = everything (default "subs")
+  -depth int
+      Maximum depth to crawl, the default is 1. Anything above 1 will include URLs from robots, sitemap, waybackurls and the initial crawler as a seed. Higher numbers take longer but yield more results.
+  -plain
+    	Don't use colours or print the banner to allow for easier parsing 
+  -schema string
+    	Schema, http or https (default "http")
+  -usewayback
+    	Query wayback machine for URLs and add them as seeds for the crawler
+  -forms
+    	Include form actions in output
   -js
     	Include links to utilised JavaScript files
+  -robots
+    	Include robots.txt entries in output
+  -sitemap
+    	Include sitemap.xml entries in output
+  -subs
+    	Include subdomains in output
+  -urls
+    	Include URLs discovered by the crawler in output
+  -wayback
+    	Include wayback machine entries in output
 ```
 
-## Example
+## Basic Example
 ```
-$ hakrawler -domain google.com -depth 1
-http://www.google.com.au/imghp?hl=en&tab=wi
-http://maps.google.com.au/maps?hl=en&tab=wl
-https://play.google.com/?hl=en&tab=w8
-http://www.youtube.com/?gl=AU&tab=w1
-http://news.google.com.au/nwshp?hl=en&tab=wn
-https://mail.google.com/mail/?tab=wm
-https://drive.google.com/?tab=wo
-https://www.google.com.au/intl/en/about/products?tab=wh
-http://www.google.com.au/history/optout?hl=en
-http://www.google.com/preferences?hl=en
-https://accounts.google.com/ServiceLogin?hl=en&passive=true&continue=http://www.google.com/
-http://www.google.com/advanced_search?hl=en-AU&authuser=0
-http://www.google.com/language_tools?hl=en-AU&authuser=0
-http://www.google.com/intl/en/ads/
-http://www.google.com/services/
-http://www.google.com/intl/en/about.html
-http://www.google.com/setprefdomain?prefdom=AU&prev=http://www.google.com.au/&sig=K_m93KYiK2mCsMUgBgjUxDQO9XjKU%3D
-http://www.google.com/intl/en/policies/privacy/
-http://www.google.com/intl/en/policies/terms/
-https://www.google.com.au/imghp?hl=en&tab=wi
-https://maps.google.com.au/maps?hl=en&tab=wl
-https://www.youtube.com/?gl=AU&tab=w1
-https://news.google.com.au/nwshp?hl=en&tab=wn
-https://www.google.com/preferences?hl=en
-https://accounts.google.com/ServiceLogin?hl=en&passive=true&continue=https://www.google.com/
-https://www.google.com/advanced_search?hl=en-AU&authuser=0
-https://www.google.com/language_tools?hl=en-AU&authuser=0
-https://www.google.com/intl/en/ads/
-https://www.google.com/services/
-https://www.google.com/intl/en/about.html
-https://www.google.com/setprefdomain?prefdom=AU&prev=https://www.google.com.au/&sig=K_N-GAtzESSj98REoQykMbaSB_bUQ%3D
-https://www.google.com/intl/en/policies/privacy/
-https://www.google.com/intl/en/policies/terms/
+   $ hakrawler -domain bugcrowd.com -depth 1
+
+██╗  ██╗ █████╗ ██╗  ██╗██████╗  █████╗ ██╗    ██╗██╗     ███████╗██████╗
+██║  ██║██╔══██╗██║ ██╔╝██╔══██╗██╔══██╗██║    ██║██║     ██╔════╝██╔══██╗
+███████║███████║█████╔╝ ██████╔╝███████║██║ █╗ ██║██║     █████╗  ██████╔╝
+██╔══██║██╔══██║██╔═██╗ ██╔══██╗██╔══██║██║███╗██║██║     ██╔══╝  ██╔══██╗
+██║  ██║██║  ██║██║  ██╗██║  ██║██║  ██║╚███╔███╔╝███████╗███████╗██║  ██║
+╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝ ╚══════╝╚══════╝╚═╝  ╚═╝
+                        Crafted with <3 by hakluke
+[robots] http://bugcrowd.com/*?preview
+[sitemap] https://bugcrowd.com/
+[sitemap] https://bugcrowd.com/contact/
+[sitemap] https://bugcrowd.com/faq/
+[sitemap] https://bugcrowd.com/leaderboard/
+[sitemap] https://bugcrowd.com/list-of-bug-bounty-programs/
+[sitemap] https://bugcrowd.com/press/
+[sitemap] https://bugcrowd.com/pricing/
+[sitemap] https://bugcrowd.com/privacy/
+[sitemap] https://bugcrowd.com/terms/
+[sitemap] https://bugcrowd.com/resources/responsible-disclosure-program/
+[sitemap] https://bugcrowd.com/resources/why-care-about-web-security/
+[sitemap] https://bugcrowd.com/resources/what-is-a-bug-bounty/
+[sitemap] https://bugcrowd.com/stories/movember/
+[sitemap] https://bugcrowd.com/stories/riskio/
+[sitemap] https://bugcrowd.com/stories/tagged/
+[sitemap] https://bugcrowd.com/tour/
+[sitemap] https://bugcrowd.com/tour/platform/
+[sitemap] https://bugcrowd.com/tour/crowd/
+[sitemap] https://bugcrowd.com/customers/programs/new
+[sitemap] https://bugcrowd.com/portal/
+[sitemap] https://bugcrowd.com/portal/user/sign_in/
+[sitemap] https://bugcrowd.com/portal/user/sign_up/
+[url] https://bugcrowd.com/user/sign_in
+[subdomain] bugcrowd.com
+[url] https://tracker.bugcrowd.com/user/sign_in
+[subdomain] tracker.bugcrowd.com
+[url] https://www.bugcrowd.com/
+[subdomain] www.bugcrowd.com
+[url] https://www.bugcrowd.com/products/how-it-works/
+[url] https://www.bugcrowd.com/products/how-it-works/the-bugcrowd-difference/
+[url] https://www.bugcrowd.com/products/platform/
+[url] https://www.bugcrowd.com/products/platform/integrations/
+[url] https://www.bugcrowd.com/products/platform/vulnerability-rating-taxonomy/
+[url] https://www.bugcrowd.com/products/attack-surface-management/
+[url] https://www.bugcrowd.com/products/bug-bounty/
+[url] https://www.bugcrowd.com/products/vulnerability-disclosure/
+[url] https://www.bugcrowd.com/products/next-gen-pen-test/
+[url] https://www.bugcrowd.com/products/bug-bash/
+[url] https://www.bugcrowd.com/resources/reports/priority-one-report
+[url] https://www.bugcrowd.com/solutions/
+[url] https://www.bugcrowd.com/solutions/financial-services/
+[url] https://www.bugcrowd.com/solutions/healthcare/
+[url] https://www.bugcrowd.com/solutions/retail/
+[url] https://www.bugcrowd.com/solutions/automotive-security/
+[url] https://www.bugcrowd.com/solutions/technology/
+[url] https://www.bugcrowd.com/solutions/government/
+[url] https://www.bugcrowd.com/solutions/security/
+[url] https://www.bugcrowd.com/solutions/marketplace-apps/
+[url] https://www.bugcrowd.com/customers/
+[url] https://www.bugcrowd.com/hackers/
+[url] https://bugcrowd.com/programs
+[url] https://bugcrowd.com/crowdstream
+[url] https://www.bugcrowd.com/bug-bounty-list/
+[url] https://www.bugcrowd.com/hackers/faqs/
+[url] https://www.bugcrowd.com/resources/help-wanted/
+[url] https://www.bugcrowd.com/hackers/bugcrowd-university/
+[url] https://www.bugcrowd.com/hackers/ambassador-program/
+[url] https://forum.bugcrowd.com
+[subdomain] forum.bugcrowd.com
+[url] https://bugcrowd.com/leaderboard
+[url] https://www.bugcrowd.com/resources/levelup-0x04
+[url] https://www.bugcrowd.com/resources/
+[url] https://www.bugcrowd.com/resources/webinars/
+[url] https://www.bugcrowd.com/resources/bakers-dozen/
+[url] https://www.bugcrowd.com/events/
+[url] https://www.bugcrowd.com/resources/glossary/
+[url] https://www.bugcrowd.com/resources/faqs/
+[url] https://www.bugcrowd.com/about/
+[url] https://www.bugcrowd.com/blog
+[url] https://www.bugcrowd.com/about/expertise/
+[url] https://www.bugcrowd.com/about/leadership/
+[url] https://www.bugcrowd.com/about/press-releases/
+[url] https://www.bugcrowd.com/about/careers/
+[url] https://www.bugcrowd.com/partners/
+[url] https://www.bugcrowd.com/about/news/
+[url] https://www.bugcrowd.com/about/contact/
+[url] https://bugcrowd.com/user/sign_up
+[url] https://www.bugcrowd.com/get-started/
+[url] https://www.bugcrowd.com/products/attack-surface-management
+[url] https://www.bugcrowd.com/products/bug-bounty
+[url] https://www.bugcrowd.com/customers/motorola
+[url] https://www.bugcrowd.com/products/vulnerability-disclosure
+[url] https://www.bugcrowd.com/products/next-gen-pen-test
+[url] https://www.bugcrowd.com/resources/guides/esg-research-ciso-security-trends
+[url] https://www.bugcrowd.com/events/join-us-at-rsa-2019-march-4-8-2019-san-francisco/
+[url] https://www.bugcrowd.com/resources/4-reasons-to-swap-your-traditional-pen-test-with-a-next-gen-pen-test/
+[url] https://www.bugcrowd.com/blog/november-2019-hall-of-fame/
+[url] https://www.bugcrowd.com/blog/bugcrowd-launches-crowdstream-and-in-platform-coordinated-disclosure/
+[url] https://www.bugcrowd.com/blog/the-future-is-now-2020-cybersecurity-predictions/
+[url] https://www.bugcrowd.com/press-release/bugcrowd-launches-first-crowd-driven-approach-to-risk-based-asset-discovery-and-prioritization/
+[url] https://www.bugcrowd.com/press-release/bugcrowd-university-expands-education-and-training-for-whitehat-hackers/
+[url] https://www.bugcrowd.com/press-release/bugcrowd-announces-industrys-first-platform-enabled-cybersecurity-assessments-for-marketplaces/
+[url] https://www.bugcrowd.com/news/
+[url] https://www.bugcrowd.com/events/appsec-cali/
+[url] https://www.bugcrowd.com/events
+[url] https://www.bugcrowd.com/bugcrowd-security/
+[url] https://www.bugcrowd.com/terms-and-conditions/
+[url] https://www.bugcrowd.com/privacy/
+[javascript] https://www.bugcrowd.com/wp-content/uploads/autoptimize/js/autoptimize_single_de6b8fb8b3b0a0ac96d1476a6ef0d147.js
+[javascript] https://www.bugcrowd.com/wp-content/uploads/autoptimize/js/autoptimize_79a2bb0d9a869da52bd3e98a65b0cfb7.js
+
 ```
