@@ -49,7 +49,7 @@ Note that if you need to do this, you probably want to add your Go bin directory
   -forms
     	Include form actions in output
   -js
-    	Include links to utilised JavaScript files
+    	Include links to utilised JavaScript files in output
   -robots
     	Include robots.txt entries in output
   -sitemap
