@@ -2,6 +2,24 @@
 
 Simple, fast web crawler written in Golang
 
+## What is it?
+
+hakrawler is a Go web crawler designed for easy, quick discovery of endpoints and assets within a web application. It can be used to discover:
+
+- Forms
+- Endpoints
+- Subdomains
+- Related domains
+- JavaScript files
+
+The goal is to create the tool in a way that it can be easily chained with other tools such as subdomain enumeration tools and vulnerability scanners in order to facilitate tool chaining, for example:
+
+```
+amass | hakrawler | some-xss-scanner
+```
+
+This tool is a keystone within a suite of tools that are currently in development by [myself](https://twitter.com/hakluke), [codingo](https://twitter.com/codingo_) and [prodigysml/sml555](https://twitter.com/sml555_).
+
 ## Features
 
 - Unlimited, fast web crawling for endpoint discovery
@@ -19,11 +37,11 @@ Simple, fast web crawler written in Golang
 
 ## Credits
 
-- @codingo and @prodigysml, my favourite people to hack with. A constant source of ideas and inspiration. They also provided beta testing and a sounding board for this tool in development.
-- @tomnomnom who wrote waybackurls, which powers the wayback part of this tool
-- @s0md3v who wrote photon, which I took ideas from to create this tool
-- The folks from @gocolly, the library which powers the crawler engine
-- @yterajima, who wrote the sitemap.xml parser used in this tool
+- [codingo](https://twitter.com/codingo_) and [prodigysml/sml555](https://twitter.com/sml555_), my favourite people to hack with. A constant source of ideas and inspiration. They also provided beta testing and a sounding board for this tool in development.
+- [tomnomnom](https://twitter.com/tomnomnom) who wrote waybackurls, which powers the wayback part of this tool
+- [s0md3v](https://twitter.com/s0md3v) who wrote photon, which I took ideas from to create this tool
+- The folks from [gocolly](https://github.com/gocolly/colly), the library which powers the crawler engine
+- [yterajima](https://github.com/yterajima), who wrote the sitemap.xml parser used in this tool
 
 ## Installation
 1. Install Golang
