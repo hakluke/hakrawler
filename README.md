@@ -31,7 +31,7 @@ This tool is a keystone within a suite of tools that are currently in developmen
 ## Upcoming features
 
 - Accept domains from stdin for easier tool chaining
-- Better output formats (especially JSON and CSV)
+- Better output formats (especially JSON, CSV and sqlmap)
 - Link gathering from JavaScript files
 - Custom headers (for including cookie + auth headers, bypassing firewalls, etc.)
 
