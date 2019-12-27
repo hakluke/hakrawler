@@ -1,4 +1,5 @@
 ![alt text](./hakrawler-banner.png)
+
 Simple, fast web crawler written in Golang
 
 ## Credits
