@@ -1,6 +1,7 @@
 # HAKRAWLER 
 Simple, fast web crawler written in Golang
 
+![alt text](./hakrawler-banner.png)
 
 ## Credits
 
@@ -62,6 +63,13 @@ Note that if you need to do this, you probably want to add your Go bin directory
 ```
 
 ## Basic Example
+
+### Image:
+
+![sample output](./hakrawler-output-sample.png)
+
+### Full text output:
+
 ```
    $ hakrawler -domain bugcrowd.com -depth 1
 
