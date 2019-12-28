@@ -31,7 +31,7 @@ amass | hakrawler | some-xss-scanner
 
 ## Upcoming features
 
-- Better output formats (in particular CSV and sqlmap)
+- SQLMap-friendly output format
 - Link gathering from JavaScript files
 
 ## Credits
