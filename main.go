@@ -69,21 +69,17 @@ func printIfInScope(scope string, tag Value, domain string, msg string, plain bo
 
 func parseSitemap(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora, plain bool, scope string){
 	defer mainwg.Done()
-	var sitemapurls []string
 	sitemapURL := schema+domain+"/sitemap.xml"
 	sitemap.ParseFromSite(sitemapURL, func(e sitemap.Entry) error {
-		printIfInScope(scope, au.BrightBlue("[sitemap]"), domain, e.GetLocation(), plain)
-		sitemapurls = append(sitemapurls, e.GetLocation()) //remove this to be more memory efficient
+		if printResult {
+			printIfInScope(scope, au.BrightBlue("[sitemap]"), domain, e.GetLocation(), plain)
+		}
+		// if depth is greater than 1, add sitemap url as seed
+		if depth > 1 {
+			c.Visit(e.GetLocation())	
+		}
 		return nil
 	})	
-
-
-	// if depth is greater than 1, add all of the sitemap urls as seeds
-	if depth > 1 {
-		for _, sitemapurl := range sitemapurls {
-			c.Visit(sitemapurl)
-		}
-	}
 }
 
 func parseRobots(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora, plain bool, scope string){
