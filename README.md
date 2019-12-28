@@ -1,5 +1,6 @@
 ![alt text](./hakrawler-banner.png)
-[![License](https://img.shields.io/badge/license-GPL3-_red.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html) [![Twitter](https://img.shields.io/badge/twitter-@hakluke_-blue.svg)](https://twitter.com/hakluke) ![Version](https://img.shields.io/badge/version-1.0-blue.svg)
+
+[![License](https://img.shields.io/badge/license-GPL3-_red.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html) [![Twitter](https://img.shields.io/badge/twitter-@hakluke_-blue.svg)](https://twitter.com/hakluke) ![Version](https://github.com/hakluke/hakrawler)
 
 Simple, fast web crawler written in Golang
 
