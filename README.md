@@ -40,7 +40,7 @@ amass | hakrawler | some-xss-scanner
 - [tomnomnom](https://twitter.com/tomnomnom) who wrote waybackurls, which powers the wayback part of this tool
 - [s0md3v](https://twitter.com/s0md3v) who wrote photon, which I took ideas from to create this tool
 - The folks from [gocolly](https://github.com/gocolly/colly), the library which powers the crawler engine
-- [yterajima](https://github.com/yterajima), who wrote the sitemap.xml parser used in this tool
+- [oxffaa](https://github.com/oxffaa/), who wrote a very efficient sitemap.xml parser which is used in this tool
 
 ## Installation
 1. Install Golang
