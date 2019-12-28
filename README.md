@@ -27,10 +27,10 @@ This tool is a keystone within a suite of tools that are currently in developmen
 - robots.txt parsing
 - sitemap.xml parsing
 - Plain output for easy parsing into other tools
+- Accept domains from stdin for easier tool chaining
 
 ## Upcoming features
 
-- Accept domains from stdin for easier tool chaining
 - Better output formats (in particular CSV and sqlmap)
 - Link gathering from JavaScript files
 
