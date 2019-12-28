@@ -27,11 +27,15 @@ func banner(au Aurora){
 	fmt.Println(BgBlue(au.BrightYellow("                        Crafted with <3 by hakluke                        ")))
 }
 
-func colorPrint(tag Value, msg string){
-	fmt.Println(tag, msg)
+func colorPrint(tag Value, msg string, plain bool){
+	if plain {
+		fmt.Println(msg)
+	} else {
+		fmt.Println(tag, msg)
+	}
 }
 
-func printIfInScope(scope string, tag Value, domain string, msg string){
+func printIfInScope(scope string, tag Value, domain string, msg string, plain bool){
 	var schema string
 	if !strings.Contains(msg, "http"){
 		schema = "https://"
@@ -47,27 +51,27 @@ func printIfInScope(scope string, tag Value, domain string, msg string){
 	switch scope {
 	case "strict":
 		if urlObj.Host == domain {
-			colorPrint(tag, msg)
+			colorPrint(tag, msg, plain)
 		}
 	case "fuzzy":
 		if strings.Contains(urlObj.Host, domain) {
-			colorPrint(tag, msg)
+			colorPrint(tag, msg, plain)
 		}
 	case "subs":
 		if strings.HasSuffix(urlObj.Host, domain) {
-			colorPrint(tag, msg)
+			colorPrint(tag, msg, plain)
 		}
 	default:
-		colorPrint(tag, msg)
+		colorPrint(tag, msg, plain)
 	}
 }
 
-func parseSitemap(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora){
+func parseSitemap(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora, plain bool, scope string){
 	defer mainwg.Done()
 	var sitemapurls []string
 	sitemapURL := schema+domain+"/sitemap.xml"
 	sitemap.ParseFromSite(sitemapURL, func(e sitemap.Entry) error {
-		fmt.Println(au.BrightBlue("[sitemap]"), e.GetLocation())
+		printIfInScope(scope, au.BrightBlue("[sitemap]"), domain, e.GetLocation(), plain)
 		sitemapurls = append(sitemapurls, e.GetLocation()) //remove this to be more memory efficient
 		return nil
 	})	
@@ -81,7 +85,7 @@ func parseSitemap(domain string, depth int, c colly.Collector, printResult bool,
 	}
 }
 
-func parseRobots(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora){
+func parseRobots(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora, plain bool, scope string){
 	defer mainwg.Done()
 	var robotsurls []string
 	robotsURL := schema+domain+"/robots.txt"
@@ -102,7 +106,7 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool, 
 			if strings.Contains(line, "llow: "){
 				urlstring := re.ReplaceAllString(line, "")
 				if(printResult){
-					fmt.Println(au.BrightMagenta("[robots]"), schema + domain + urlstring)
+					printIfInScope(scope, au.BrightMagenta("[robots]"), domain, schema + domain + urlstring, plain)
 				}
 				//add it to a slice for parsing later
 				robotsurls = append(robotsurls, schema + domain + urlstring)
@@ -171,7 +175,6 @@ func main() {
 	subdomains := make(map[string]struct{})
 	jsfiles := make(map[string]struct{})
 	forms := make(map[string]struct{})
-	//robots := make(map[string]struct{}) // probably don't need this...
 
 	// behold, the colly collector
 	c := colly.NewCollector(
@@ -205,14 +208,14 @@ func main() {
 					fmt.Println(err)
 				} else {
 					if *includeURLsPtr || *includeAllPtr {
-						printIfInScope(*scopePtr,au.BrightYellow("[url]"),*domainPtr,urlString)
+						printIfInScope(*scopePtr,au.BrightYellow("[url]"),*domainPtr,urlString, *plain)
 						urls[urlString] = struct{}{}
 					}
 					// if this is a new subdomain, print it
 					if *includeSubsPtr || *includeAllPtr {
 						if _, ok := subdomains[urlObj.Host]; !ok {
 							if urlObj.Host != ""{
-								printIfInScope(*scopePtr,au.BrightGreen("[subdomain]"),*domainPtr,urlObj.Host)
+								printIfInScope(*scopePtr,au.BrightGreen("[subdomain]"),*domainPtr,urlObj.Host, *plain)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -229,7 +232,7 @@ func main() {
 			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
 			if _, ok := jsfiles[jsfile]; !ok {
 				if jsfile != ""{
-					printIfInScope(*scopePtr,au.BrightRed("[javascript]"),*domainPtr,jsfile)
+					printIfInScope(*scopePtr,au.BrightRed("[javascript]"),*domainPtr,jsfile, *plain)
 					jsfiles[jsfile] = struct{}{}
 				}
 			}
@@ -243,7 +246,7 @@ func main() {
 			form := e.Request.AbsoluteURL(e.Attr("action"))
 			if _, ok := forms[form]; !ok {
 				if form != ""{
-					printIfInScope(*scopePtr,au.BrightCyan("[form]"),*domainPtr,form)
+					printIfInScope(*scopePtr,au.BrightCyan("[form]"),*domainPtr,form, *plain)
 					forms[form] = struct{}{}
 				}
 			}
@@ -274,11 +277,11 @@ func main() {
 
 	// robots.txt
 	mainwg.Add(1)
-	go parseRobots(*domainPtr, *depthPtr, *c, printRobots, &mainwg, schema, au)
+	go parseRobots(*domainPtr, *depthPtr, *c, printRobots, &mainwg, schema, au, *plain, *scopePtr)
 
 	// sitemap.xml
 	mainwg.Add(1)
-	go parseSitemap(*domainPtr, *depthPtr, *c, printSitemap, &mainwg, schema, au)
+	go parseSitemap(*domainPtr, *depthPtr, *c, printSitemap, &mainwg, schema, au, *plain, *scopePtr)
 
 	// waybackurls
 	if *wayback{
@@ -291,7 +294,7 @@ func main() {
 			// print wayback results, if depth >1, also add them to the crawl queue
 			for _, waybackurl := range waybackurls {
 				if *includeWaybackPtr || *includeAllPtr {
-					printIfInScope(*scopePtr, au.Yellow("[wayback]"), *domainPtr, waybackurl)	
+					printIfInScope(*scopePtr, au.Yellow("[wayback]"), *domainPtr, waybackurl, *plain)
 				}
 				// if this is a new subdomain, print it
 				urlObj, err := url.Parse(waybackurl)
@@ -303,7 +306,7 @@ func main() {
 					if _, ok := subdomains[urlObj.Host]; !ok {
 						if urlObj.Host != ""{
 							if strings.Contains(urlObj.Host, *domainPtr){
-								printIfInScope(*scopePtr,au.BrightGreen("[subdomain]"),*domainPtr,urlObj.Host)
+								printIfInScope(*scopePtr,au.BrightGreen("[subdomain]"),*domainPtr,urlObj.Host, *plain)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
