@@ -1,4 +1,4 @@
-![alt text](./hakrawler-banner.png)
+# hakrawler
 
 [![Twitter](https://img.shields.io/badge/twitter-@hakluke_-blue.svg)](https://twitter.com/hakluke)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/hakluke/hakrawler)
