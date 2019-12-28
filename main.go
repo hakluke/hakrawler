@@ -139,6 +139,8 @@ func main() {
 	includeSitemapPtr := flag.Bool("sitemap", false, "Include sitemap.xml entries in output")
 	includeWaybackPtr := flag.Bool("wayback", false, "Include wayback machine entries in output")
 	includeAllPtr := flag.Bool("all", true, "Include everything in output")
+	cookiePtr := flag.String("cookie", "", "The value of this will be included as a Cookie header")
+    authHeaderPtr := flag.String("auth", "", "The value of this will be included as a Authorization header")	
 	scopePtr := flag.String("scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nfuzzy = anything containing the supplied domain\nyolo = everything")
 	schemaPtr := flag.String("schema", "http", "Schema, http or https")
 	wayback := flag.Bool("usewayback", false, "Use wayback machine URLs as seeds")
@@ -180,9 +182,22 @@ func main() {
 	// behold, the colly collector
 	c := colly.NewCollector(
 		colly.MaxDepth(*depthPtr),
-		// this is not fooling anyone
+		// this is not fooling anyone XD 
 		colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"),
 	)
+
+	// set custom headers if specified 
+	if *cookiePtr != "" {
+		c.OnRequest(func(r *colly.Request) {
+			r.Headers.Set("Cookie", *cookiePtr)
+		})
+	}
+
+	if *authHeaderPtr != "" {
+		c.OnRequest(func(r *colly.Request) {
+			r.Headers.Set("Authorization", *authHeaderPtr)
+		})
+	}
 
 	// find and visit the links
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
