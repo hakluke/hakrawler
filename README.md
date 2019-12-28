@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/hakluke/hakrawler)
 [![License](https://img.shields.io/badge/license-GPL3-_red.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)  
 
-Simple, fast web crawler written in Golang
+Simple, fast web crawler designed for easy, quick discovery of endpoints and assets within a web application
 
 ## What is it?
 
