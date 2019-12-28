@@ -31,9 +31,8 @@ This tool is a keystone within a suite of tools that are currently in developmen
 ## Upcoming features
 
 - Accept domains from stdin for easier tool chaining
-- Better output formats (especially JSON, CSV and sqlmap)
+- Better output formats (in particular CSV and sqlmap)
 - Link gathering from JavaScript files
-- Custom headers (for including cookie + auth headers, bypassing firewalls, etc.)
 
 ## Credits
 
@@ -78,6 +77,10 @@ Note that if you need to do this, you probably want to add your Go bin directory
     	Schema, http or https (default "http")
   -usewayback
     	Query wayback machine for URLs and add them as seeds for the crawler
+  -cookie
+      The value passed to this will be used as the "Cookie" header on the crawler requests
+  -auth
+      The value passed to this will be used as the "Authorization" header on the crawler requests 
   -forms
     	Include form actions in output
   -js
