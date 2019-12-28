@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 	"github.com/gocolly/colly"
 	. "github.com/logrusorgru/aurora"
-	"github.com/yterajima/go-sitemap"
+	"github.com/oxffaa/gopher-parse-sitemap"
 )
 
 func banner(au Aurora){
@@ -66,18 +66,12 @@ func parseSitemap(domain string, depth int, c colly.Collector, printResult bool,
 	defer mainwg.Done()
 	var sitemapurls []string
 	sitemapURL := schema+domain+"/sitemap.xml"
-	smap, err := sitemap.Get(sitemapURL, nil)	
-	if err!=nil {
-		// this usually happens when the xml is not UTF8, TODO: make it work regardless
-		return
-	}
-	for _, URL := range smap.URL {
-		if(printResult){
-			fmt.Println(au.BrightBlue("[sitemap]"), URL.Loc)
-		}
-		//add it to a slice for parsing later
-		sitemapurls = append(sitemapurls, URL.Loc)
-	}
+	sitemap.ParseFromSite(sitemapURL, func(e sitemap.Entry) error {
+		fmt.Println(au.BrightBlue("[sitemap]"), e.GetLocation())
+		sitemapurls = append(sitemapurls, e.GetLocation()) //remove this to be more memory efficient
+		return nil
+	})	
+
 
 	// if depth is greater than 1, add all of the sitemap urls as seeds
 	if depth > 1 {
