@@ -20,8 +20,6 @@ The goal is to create the tool in a way that it can be easily chained with other
 amass | hakrawler | some-xss-scanner
 ```
 
-This tool is a keystone within a suite of tools that are currently in development by [myself](https://twitter.com/hakluke), [codingo](https://twitter.com/codingo_) and [prodigysml/sml555](https://twitter.com/sml555_).
-
 ## Features
 
 - Unlimited, fast web crawling for endpoint discovery
