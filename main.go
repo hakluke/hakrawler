@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"flag"
 	"sync"
+	"bufio"
 	"regexp"
 	"strings"
 	"net/url"
@@ -121,39 +122,11 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool, 
 	}
 }
 
-func main() {
 
-
-	// define and parse command line flags
-	domainPtr := flag.String("domain", "", "Domain to crawl")
-	depthPtr := flag.Int("depth", 1, "Maximum depth to crawl")
-
-	// which data to include in output?
-	includeJSPtr := flag.Bool("js", false, "Include links to utilised JavaScript files")
-	includeSubsPtr := flag.Bool("subs", false, "Include subdomains in output")
-	includeURLsPtr := flag.Bool("urls", false, "Include URLs in output")
-	includeFormsPtr := flag.Bool("forms", false, "Include form actions in output")
-	includeRobotsPtr := flag.Bool("robots", false, "Include robots.txt entries in output")
-	includeSitemapPtr := flag.Bool("sitemap", false, "Include sitemap.xml entries in output")
-	includeWaybackPtr := flag.Bool("wayback", false, "Include wayback machine entries in output")
-	includeAllPtr := flag.Bool("all", true, "Include everything in output")
-	cookiePtr := flag.String("cookie", "", "The value of this will be included as a Cookie header")
-    authHeaderPtr := flag.String("auth", "", "The value of this will be included as a Authorization header")	
-	scopePtr := flag.String("scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nfuzzy = anything containing the supplied domain\nyolo = everything")
-	schemaPtr := flag.String("schema", "http", "Schema, http or https")
-	wayback := flag.Bool("usewayback", false, "Use wayback machine URLs as seeds")
-	plain := flag.Bool("plain", false, "Don't use colours or print the banner, easier for parsing")
-	flag.Parse()
-
-	au := NewAurora(!*plain)
-
-	// print the banner
-	if !*plain{
-		banner(au)
-	}
+func crawl(domain string, depthPtr *int, includeJSPtr *bool, includeSubsPtr *bool, includeURLsPtr *bool, includeFormsPtr *bool, includeRobotsPtr *bool, includeSitemapPtr *bool, includeWaybackPtr *bool, includeAllPtr *bool, cookiePtr *string, authHeaderPtr *string, scopePtr *string, schemaPtr *string, wayback *bool, plain *bool, au Aurora, domainwg *sync.WaitGroup) {
 
 	// make sure the domain has been set
-	if *domainPtr == "" {
+	if domain == "" {
 		fmt.Println(au.BrightRed("[error]"), "You must set a domain, e.g. -domain=example.com")
 		fmt.Println(au.BrightBlue("[info]"), "See hakrawler -h for commandline options")
 		os.Exit(1)
@@ -208,14 +181,14 @@ func main() {
 					fmt.Println(err)
 				} else {
 					if *includeURLsPtr || *includeAllPtr {
-						printIfInScope(*scopePtr,au.BrightYellow("[url]"),*domainPtr,urlString, *plain)
+						printIfInScope(*scopePtr,au.BrightYellow("[url]"),domain,urlString, *plain)
 						urls[urlString] = struct{}{}
 					}
 					// if this is a new subdomain, print it
 					if *includeSubsPtr || *includeAllPtr {
 						if _, ok := subdomains[urlObj.Host]; !ok {
 							if urlObj.Host != ""{
-								printIfInScope(*scopePtr,au.BrightGreen("[subdomain]"),*domainPtr,urlObj.Host, *plain)
+								printIfInScope(*scopePtr,au.BrightGreen("[subdomain]"),domain,urlObj.Host, *plain)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -232,7 +205,7 @@ func main() {
 			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
 			if _, ok := jsfiles[jsfile]; !ok {
 				if jsfile != ""{
-					printIfInScope(*scopePtr,au.BrightRed("[javascript]"),*domainPtr,jsfile, *plain)
+					printIfInScope(*scopePtr,au.BrightRed("[javascript]"),domain,jsfile, *plain)
 					jsfiles[jsfile] = struct{}{}
 				}
 			}
@@ -246,7 +219,7 @@ func main() {
 			form := e.Request.AbsoluteURL(e.Attr("action"))
 			if _, ok := forms[form]; !ok {
 				if form != ""{
-					printIfInScope(*scopePtr,au.BrightCyan("[form]"),*domainPtr,form, *plain)
+					printIfInScope(*scopePtr,au.BrightCyan("[form]"),domain,form, *plain)
 					forms[form] = struct{}{}
 				}
 			}
@@ -277,11 +250,11 @@ func main() {
 
 	// robots.txt
 	mainwg.Add(1)
-	go parseRobots(*domainPtr, *depthPtr, *c, printRobots, &mainwg, schema, au, *plain, *scopePtr)
+	go parseRobots(domain, *depthPtr, *c, printRobots, &mainwg, schema, au, *plain, *scopePtr)
 
 	// sitemap.xml
 	mainwg.Add(1)
-	go parseSitemap(*domainPtr, *depthPtr, *c, printSitemap, &mainwg, schema, au, *plain, *scopePtr)
+	go parseSitemap(domain, *depthPtr, *c, printSitemap, &mainwg, schema, au, *plain, *scopePtr)
 
 	// waybackurls
 	if *wayback{
@@ -289,12 +262,12 @@ func main() {
 			mainwg.Add(1)
 			defer mainwg.Done()	
 			// get results from waybackurls
-			waybackurls := WaybackURLs(*domainPtr)
+			waybackurls := WaybackURLs(domain)
 
 			// print wayback results, if depth >1, also add them to the crawl queue
 			for _, waybackurl := range waybackurls {
 				if *includeWaybackPtr || *includeAllPtr {
-					printIfInScope(*scopePtr, au.Yellow("[wayback]"), *domainPtr, waybackurl, *plain)
+					printIfInScope(*scopePtr, au.Yellow("[wayback]"), domain, waybackurl, *plain)
 				}
 				// if this is a new subdomain, print it
 				urlObj, err := url.Parse(waybackurl)
@@ -305,8 +278,8 @@ func main() {
 				if *includeSubsPtr || *includeAllPtr {
 					if _, ok := subdomains[urlObj.Host]; !ok {
 						if urlObj.Host != ""{
-							if strings.Contains(urlObj.Host, *domainPtr){
-								printIfInScope(*scopePtr,au.BrightGreen("[subdomain]"),*domainPtr,urlObj.Host, *plain)
+							if strings.Contains(urlObj.Host, domain){
+								printIfInScope(*scopePtr,au.BrightGreen("[subdomain]"),domain,urlObj.Host, *plain)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -323,8 +296,59 @@ func main() {
 	go func(){
 		mainwg.Add(1)
 		defer mainwg.Done()
-		c.Visit(schema + *domainPtr)
+		c.Visit(schema + domain)
 	}()
 	
 	mainwg.Wait()
+	domainwg.Done()
+}
+
+func main() {
+	// define and parse command line flags
+	domainPtr := flag.String("domain", "", "Domain to crawl")
+	depthPtr := flag.Int("depth", 1, "Maximum depth to crawl")
+
+	// which data to include in output?
+	includeJSPtr := flag.Bool("js", false, "Include links to utilised JavaScript files")
+	includeSubsPtr := flag.Bool("subs", false, "Include subdomains in output")
+	includeURLsPtr := flag.Bool("urls", false, "Include URLs in output")
+	includeFormsPtr := flag.Bool("forms", false, "Include form actions in output")
+	includeRobotsPtr := flag.Bool("robots", false, "Include robots.txt entries in output")
+	includeSitemapPtr := flag.Bool("sitemap", false, "Include sitemap.xml entries in output")
+	includeWaybackPtr := flag.Bool("wayback", false, "Include wayback machine entries in output")
+	includeAllPtr := flag.Bool("all", true, "Include everything in output")
+	cookiePtr := flag.String("cookie", "", "The value of this will be included as a Cookie header")
+    authHeaderPtr := flag.String("auth", "", "The value of this will be included as a Authorization header")	
+	scopePtr := flag.String("scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nfuzzy = anything containing the supplied domain\nyolo = everything")
+	schemaPtr := flag.String("schema", "http", "Schema, http or https")
+	wayback := flag.Bool("usewayback", false, "Use wayback machine URLs as seeds")
+	plain := flag.Bool("plain", false, "Don't use colours or print the banner, easier for parsing")
+	flag.Parse()
+
+	au := NewAurora(!*plain)
+
+	// print the banner
+	if !*plain{
+		banner(au)
+	}
+
+	// decide whether to use -domain or stdin
+	var domainwg sync.WaitGroup
+	if *domainPtr != "" {
+		// in this case, the waitgroup is not necessary as there is only 1 domain
+		// I added it anyway because the function is expecting a wg pointer
+		// There's a better way to do this
+		domain := *domainPtr
+		domainwg.Add(1)
+		go crawl(domain, depthPtr, includeJSPtr, includeSubsPtr, includeURLsPtr, includeFormsPtr, includeRobotsPtr, includeSitemapPtr, includeWaybackPtr, includeAllPtr, cookiePtr, authHeaderPtr, scopePtr, schemaPtr, wayback, plain, au, &domainwg)
+	} else {
+		// get domains from stdin
+		sc := bufio.NewScanner(os.Stdin)
+		for sc.Scan() {
+			domainwg.Add(1)
+			domain := strings.ToLower(sc.Text())
+			go crawl(domain, depthPtr, includeJSPtr, includeSubsPtr, includeURLsPtr, includeFormsPtr, includeRobotsPtr, includeSitemapPtr, includeWaybackPtr, includeAllPtr, cookiePtr, authHeaderPtr, scopePtr, schemaPtr, wayback, plain, au, &domainwg)	
+		}
+	}
+	domainwg.Wait()
 }
