@@ -23,7 +23,7 @@ amass | hakrawler | some-xss-scanner
 ## Features
 
 - Unlimited, fast web crawling for endpoint discovery
-- Fuzzy matching for subdomain discovery
+- Fuzzy matching for domain discovery
 - robots.txt parsing
 - sitemap.xml parsing
 - Plain output for easy parsing into other tools
