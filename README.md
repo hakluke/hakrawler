@@ -28,11 +28,12 @@ amass | hakrawler | some-xss-scanner
 - sitemap.xml parsing
 - Plain output for easy parsing into other tools
 - Accept domains from stdin for easier tool chaining
+- SQLMap-friendly output format
 
 ## Upcoming features
 
-- SQLMap-friendly output format
 - Link gathering from JavaScript files
+- Want more? [Submit a feature request](https://github.com/hakluke/hakrawler/issues/new)!
 
 ## Credits
 
