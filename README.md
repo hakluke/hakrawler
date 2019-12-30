@@ -23,7 +23,7 @@ amass | hakrawler | some-xss-scanner
 ## Features
 
 - Unlimited, fast web crawling for endpoint discovery
-- Fuzzy matching for subdomain discovery
+- Fuzzy matching for domain discovery
 - robots.txt parsing
 - sitemap.xml parsing
 - Plain output for easy parsing into other tools
@@ -58,43 +58,44 @@ Note that if you need to do this, you probably want to add your Go bin directory
 ## Usage
 Note: multiple domains can be crawled by piping them into hakrawler from stdin. If only a single domain is being crawled, it can be added by using the -domain flag.
 ```
-  -h
-      Show usage
-  -domain string
-      The domain that you wish to crawl (for example, google.com)
+$ hakrawler -h
+Usage of hakrawler:
   -all
-    	Include all sources in output (default true)
-      This is an alias for including all of the following options: -subs, -urls, -sitemap, -robots, -js and -forms
+    	Include everything in output - this is the default, so this option is superfluous (default true)
+  -auth string
+    	The value of this will be included as a Authorization header
+  -cookie string
+    	The value of this will be included as a Cookie header
+  -depth int
+    	Maximum depth to crawl, the default is 1. Anything above 1 will include URLs from robots, sitemap, waybackurls and the initial crawler as a seed. Higher numbers take longer but yield more results. (default 1)
+  -domain string
+    	The domain that you wish to crawl (for example, google.com)
+  -forms
+    	Include form actions in output
+  -js
+    	Include links to utilised JavaScript files
+  -outdir string
+    	Directory to save discovered raw HTTP requests
+  -plain
+    	Don't use colours or print the banners to allow for easier parsing
+  -robots
+    	Include robots.txt entries in output
+  -schema string
+    	Schema, http or https (default "http")
   -scope string
     	Scope to include:
     	strict = specified domain only
     	subs = specified domain and subdomains
-    	fuzzy = any results where the domain contains the supplied domain (for example URLs from withgoogle.com would be returned if you supply the domain google.com)
+    	fuzzy = anything containing the supplied domain
     	yolo = everything (default "subs")
-  -depth int
-      Maximum depth to crawl, the default is 1. Anything above 1 will include URLs from robots, sitemap, waybackurls and the initial crawler as a seed. Higher numbers take longer but yield more results.
-  -plain
-    	Don't use colours or print the banner to allow for easier parsing 
-  -schema string
-    	Schema, http or https (default "http")
-  -usewayback
-    	Query wayback machine for URLs and add them as seeds for the crawler
-  -cookie
-      The value passed to this will be used as the "Cookie" header on the crawler requests
-  -auth
-      The value passed to this will be used as the "Authorization" header on the crawler requests 
-  -forms
-    	Include form actions in output
-  -js
-    	Include links to utilised JavaScript files in output
-  -robots
-    	Include robots.txt entries in output
   -sitemap
     	Include sitemap.xml entries in output
   -subs
     	Include subdomains in output
   -urls
-    	Include URLs discovered by the crawler in output
+    	Include URLs in output
+  -usewayback
+    	Query wayback machine for URLs and add them as seeds for the crawler
   -wayback
     	Include wayback machine entries in output
 ```
