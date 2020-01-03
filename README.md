@@ -34,6 +34,7 @@ amass | hakrawler | some-xss-scanner
 
 - Link gathering from JavaScript files
 - Want more? [Submit a feature request](https://github.com/hakluke/hakrawler/issues/new)!
+- Cleaner code
 
 ## Credits
 
