@@ -33,8 +33,8 @@ amass | hakrawler | some-xss-scanner
 ## Upcoming features
 
 - Link gathering from JavaScript files
-- Want more? [Submit a feature request](https://github.com/hakluke/hakrawler/issues/new)!
 - Cleaner code
+- Want more? [Submit a feature request](https://github.com/hakluke/hakrawler/issues/new)!
 
 ## Credits
 
