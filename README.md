@@ -36,7 +36,11 @@ amass | hakrawler | some-xss-scanner
 - Cleaner code
 - Want more? [Submit a feature request](https://github.com/hakluke/hakrawler/issues/new)!
 
-## Credits
+## Contributors
+- [hakluke](https://twitter.com/hakluke) wrote the tool
+- [cablej](https://cablej.io/) cleaned up the code
+
+## Thanks
 
 - [codingo](https://twitter.com/codingo_) and [prodigysml/sml555](https://twitter.com/sml555_), my favourite people to hack with. A constant source of ideas and inspiration. They also provided beta testing and a sounding board for this tool in development.
 - [tomnomnom](https://twitter.com/tomnomnom) who wrote waybackurls, which powers the wayback part of this tool
