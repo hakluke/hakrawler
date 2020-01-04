@@ -90,6 +90,7 @@ func printIfInScope(scope string, tag Value, schema string, domain string, msg s
 
 	if shouldPrint {
 		strVal := urlObj.String()
+		// Remove the schema if it was added before
 		if msgSchema != "" {
 			strVal = strings.Replace(strVal, msgSchema, "", 1)
 		}
