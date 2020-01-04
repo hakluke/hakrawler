@@ -62,7 +62,7 @@ func printIfInScope(scope string, tag Value, schema string, domain string, msg s
 
 	var msgSchema string
 
-	if !strings.Contains(msg, "http") && !strings.HasPrefix(msg, "/") {
+	if !strings.Contains(msg, "http://") && !strings.Contains(msg, "https://") && !strings.HasPrefix(msg, "/") {
 		msgSchema = "https://"
 	} else {
 		msgSchema = ""
