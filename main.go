@@ -53,44 +53,47 @@ func printToRandomFile(msg string, dir string) {
 }
 
 // determines whether the domains/urls should be printed based on the provided scope
-func printIfInScope(scope string, tag Value, domain string, msg string, plain bool, outdirPtr *string) {
-	var schema string
-
-	if !strings.Contains(msg, "http") {
-		schema = "https://"
-	} else {
-		schema = ""
+func printIfInScope(scope string, tag Value, schema string, domain string, msg string, plain bool, outdirPtr *string) {
+	base, err := url.Parse(schema + domain)
+	if err != nil {
+		// Error parsing base domain
+		return
 	}
 
-	var urlObj, err = url.Parse(schema + msg)
+	var msgSchema string
+
+	if !strings.Contains(msg, "http") && !strings.HasPrefix(msg, "/") {
+		msgSchema = "https://"
+	} else {
+		msgSchema = ""
+	}
+
+	urlObj, err := url.Parse(msgSchema + msg)
 	if err != nil {
 		// the url can't be parsed, move on with reckless abandon
 		return
 	}
+	urlObj = base.ResolveReference(urlObj)
+
+	shouldPrint := false
+
 	switch scope {
 	case "strict":
-		if urlObj.Host == domain {
-			colorPrint(tag, msg, plain)
-			if *outdirPtr != "" {
-				printToRandomFile(rawHTTPGET(msg), *outdirPtr)
-			}
-		}
+		shouldPrint = urlObj.Host == domain
 	case "fuzzy":
-		if strings.Contains(urlObj.Host, domain) {
-			colorPrint(tag, msg, plain)
-			if *outdirPtr != "" {
-				printToRandomFile(rawHTTPGET(msg), *outdirPtr)
-			}
-		}
+		shouldPrint = strings.Contains(urlObj.Host, domain)
 	case "subs":
-		if strings.HasSuffix(urlObj.Host, domain) {
-			colorPrint(tag, msg, plain)
-			if *outdirPtr != "" {
-				printToRandomFile(rawHTTPGET(msg), *outdirPtr)
-			}
-		}
+		shouldPrint = strings.HasSuffix(urlObj.Host, domain)
 	default:
-		colorPrint(tag, msg, plain)
+		shouldPrint = true
+	}
+
+	if shouldPrint {
+		strVal := urlObj.String()
+		if msgSchema != "" {
+			strVal = strings.Replace(strVal, msgSchema, "", 1)
+		}
+		colorPrint(tag, strVal, plain)
 		if *outdirPtr != "" {
 			printToRandomFile(rawHTTPGET(msg), *outdirPtr)
 		}
@@ -118,7 +121,7 @@ func parseSitemap(domain string, depth int, c colly.Collector, printResult bool,
 	sitemapURL := schema + domain + "/sitemap.xml"
 	sitemap.ParseFromSite(sitemapURL, func(e sitemap.Entry) error {
 		if printResult {
-			printIfInScope(scope, au.BrightBlue("[sitemap]"), domain, e.GetLocation(), plain, outdirPtr)
+			printIfInScope(scope, au.BrightBlue("[sitemap]"), schema, domain, e.GetLocation(), plain, outdirPtr)
 		}
 		// if depth is greater than 1, add sitemap url as seed
 		if depth > 1 {
@@ -149,7 +152,7 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool, 
 			if strings.Contains(line, "llow: ") {
 				urlstring := re.ReplaceAllString(line, "")
 				if printResult {
-					printIfInScope(scope, au.BrightMagenta("[robots]"), domain, schema+domain+urlstring, plain, outdirPtr)
+					printIfInScope(scope, au.BrightMagenta("[robots]"), schema, domain, schema+domain+urlstring, plain, outdirPtr)
 				}
 				//add it to a slice for parsing later
 				robotsurls = append(robotsurls, schema+domain+urlstring)
@@ -223,14 +226,14 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 					fmt.Println(err)
 				} else {
 					if *includeURLsPtr || *includeAllPtr {
-						printIfInScope(*scopePtr, au.BrightYellow("[url]"), domain, urlString, *plain, outdirPtr)
+						printIfInScope(*scopePtr, au.BrightYellow("[url]"), schema, domain, urlString, *plain, outdirPtr)
 						urls[urlString] = struct{}{}
 					}
 					// if this is a new subdomain, print it
 					if *includeSubsPtr || *includeAllPtr {
 						if _, ok := subdomains[urlObj.Host]; !ok {
 							if urlObj.Host != "" {
-								printIfInScope(*scopePtr, au.BrightGreen("[subdomain]"), domain, urlObj.Host, *plain, outdirPtr)
+								printIfInScope(*scopePtr, au.BrightGreen("[subdomain]"), schema, domain, urlObj.Host, *plain, outdirPtr)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -247,7 +250,7 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
 			if _, ok := jsfiles[jsfile]; !ok {
 				if jsfile != "" {
-					printIfInScope(*scopePtr, au.BrightRed("[javascript]"), domain, jsfile, *plain, outdirPtr)
+					printIfInScope(*scopePtr, au.BrightRed("[javascript]"), schema, domain, jsfile, *plain, outdirPtr)
 					jsfiles[jsfile] = struct{}{}
 				}
 			}
@@ -260,7 +263,7 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 			form := e.Request.AbsoluteURL(e.Attr("action"))
 			if _, ok := forms[form]; !ok {
 				if form != "" {
-					printIfInScope(*scopePtr, au.BrightCyan("[form]"), domain, form, *plain, outdirPtr)
+					printIfInScope(*scopePtr, au.BrightCyan("[form]"), schema, domain, form, *plain, outdirPtr)
 					forms[form] = struct{}{}
 				}
 			}
@@ -306,7 +309,7 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 			// print wayback results, if depth >1, also add them to the crawl queue
 			for _, waybackurl := range waybackurls {
 				if *includeWaybackPtr || *includeAllPtr {
-					printIfInScope(*scopePtr, au.Yellow("[wayback]"), domain, waybackurl, *plain, outdirPtr)
+					printIfInScope(*scopePtr, au.Yellow("[wayback]"), schema, domain, waybackurl, *plain, outdirPtr)
 				}
 				// if this is a new subdomain, print it
 				urlObj, err := url.Parse(waybackurl)
@@ -318,7 +321,7 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 					if _, ok := subdomains[urlObj.Host]; !ok {
 						if urlObj.Host != "" {
 							if strings.Contains(urlObj.Host, domain) {
-								printIfInScope(*scopePtr, au.BrightGreen("[subdomain]"), domain, urlObj.Host, *plain, outdirPtr)
+								printIfInScope(*scopePtr, au.BrightGreen("[subdomain]"), schema, domain, urlObj.Host, *plain, outdirPtr)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
