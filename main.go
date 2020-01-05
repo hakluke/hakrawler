@@ -4,11 +4,8 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/gocolly/colly"
-	"github.com/google/uuid"
-	. "github.com/logrusorgru/aurora"
-	"github.com/oxffaa/gopher-parse-sitemap"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -16,6 +13,11 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/gocolly/colly"
+	"github.com/google/uuid"
+	. "github.com/logrusorgru/aurora"
+	sitemap "github.com/oxffaa/gopher-parse-sitemap"
 )
 
 func banner(au Aurora) {
@@ -47,8 +49,7 @@ func printToRandomFile(msg string, dir string) {
 
 	err := ioutil.WriteFile(dir+"hakrawler_"+uuid.String()+".req", []byte(msg), 0644)
 	if err != nil {
-		fmt.Println("ERROR: ", err)
-		os.Exit(3)
+		log.Fatalf("ERROR: %v\n", err)
 	}
 }
 
