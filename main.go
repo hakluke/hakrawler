@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -21,6 +22,7 @@ import (
 )
 
 var (
+	// regular expression from LinkFinder.
 	LinkFinderRegex, _ = regexp.Compile(`(?:"|')(((?:[a-zA-Z]{1,10}://|//)[^"'/]{1,}\.[a-zA-Z]{2,}[^"']{0,})|((?:/|\.\./|\./)[^"'><,;| *()(%%$^/\\\[\]][^"'><,;|()]{1,})|([a-zA-Z0-9_\-/]{1,}/[a-zA-Z0-9_\-/]{1,}\.(?:[a-zA-Z]{1,4}|action)(?:[\?|/][^"|']{0,}|))
 |([a-zA-Z0-9_\-]{1,}\.(?:php|asp|aspx|jsp|json|action|html|js|txt|xml)(?:\?[^"|']{0,}|)))(?:"|')`)
 )
@@ -58,7 +60,7 @@ func printToRandomFile(msg string, dir string) {
 	}
 }
 
-// determines whether the domains/urls should be printed based on the provided scope
+// determines whether the domains/urls should be printed based on the provided scope (returns true/false)
 func printIfInScope(scope string, tag Value, schema string, domain string, msg string, plain bool, outdirPtr *string) bool {
 	base, err := url.Parse(schema + domain)
 	if err != nil {
@@ -175,11 +177,13 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool, 
 	}
 }
 func linkfinder(jsfile string, tag Value, plain *bool) {
-	client := http.Client{}
+	// skip tls verification
+	client := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 	resp, err := client.Get(jsfile)
 	if err != nil {
 		return
 	}
+	//  if js file exists
 	if resp.StatusCode == 200 {
 		res, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
