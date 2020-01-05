@@ -1,7 +1,7 @@
 # hakrawler
 
 [![Twitter](https://img.shields.io/badge/twitter-@hakluke_-blue.svg)](https://twitter.com/hakluke)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/hakluke/hakrawler)
+[![Version](https://img.shields.io/badge/version-beta-blue.svg)](https://github.com/hakluke/hakrawler)
 [![License](https://img.shields.io/badge/license-GPL3-_red.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)  
 
 ## What is it?
@@ -33,9 +33,14 @@ amass | hakrawler | some-xss-scanner
 ## Upcoming features
 
 - Link gathering from JavaScript files
+- Cleaner code
 - Want more? [Submit a feature request](https://github.com/hakluke/hakrawler/issues/new)!
 
-## Credits
+## Contributors
+- [hakluke](https://twitter.com/hakluke) wrote the tool
+- [cablej](https://cablej.io/) cleaned up the code
+
+## Thanks
 
 - [codingo](https://twitter.com/codingo_) and [prodigysml/sml555](https://twitter.com/sml555_), my favourite people to hack with. A constant source of ideas and inspiration. They also provided beta testing and a sounding board for this tool in development.
 - [tomnomnom](https://twitter.com/tomnomnom) who wrote waybackurls, which powers the wayback part of this tool
