@@ -332,8 +332,8 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 	}
 
 	// colly
+	mainwg.Add(1)
 	go func() {
-		mainwg.Add(1)
 		defer mainwg.Done()
 		c.Visit(schema + domain)
 	}()
