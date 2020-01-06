@@ -2,7 +2,7 @@
 
 [![Twitter](https://img.shields.io/badge/twitter-@hakluke_-blue.svg)](https://twitter.com/hakluke)
 [![Version](https://img.shields.io/badge/version-beta-blue.svg)](https://github.com/hakluke/hakrawler)
-[![License](https://img.shields.io/badge/license-GPL3-_red.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)  
+[![License](https://img.shields.io/badge/license-MIT-_red.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)  
 
 ## What is it?
 
