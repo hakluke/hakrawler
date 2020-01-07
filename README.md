@@ -17,7 +17,7 @@ hakrawler is a Go web crawler designed for easy, quick discovery of endpoints an
 The goal is to create the tool in a way that it can be easily chained with other tools such as subdomain enumeration tools and vulnerability scanners in order to facilitate tool chaining, for example:
 
 ```
-amass | hakrawler | some-xss-scanner
+assetfinder target.com | hakrawler | some-xss-scanner
 ```
 
 ## Features
