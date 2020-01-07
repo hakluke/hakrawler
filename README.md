@@ -29,16 +29,17 @@ amass | hakrawler | some-xss-scanner
 - Plain output for easy parsing into other tools
 - Accept domains from stdin for easier tool chaining
 - SQLMap-friendly output format
+- Link gathering from JavaScript files
 
 ## Upcoming features
 
-- Link gathering from JavaScript files
 - Cleaner code
 - Want more? [Submit a feature request](https://github.com/hakluke/hakrawler/issues/new)!
 
 ## Contributors
 - [hakluke](https://twitter.com/hakluke) wrote the tool
 - [cablej](https://cablej.io/) cleaned up the code
+- [Corben Leo](https://github.com/lc) added in functionality to pull links from JavaScript files
 
 ## Thanks
 
@@ -47,6 +48,7 @@ amass | hakrawler | some-xss-scanner
 - [s0md3v](https://twitter.com/s0md3v) who wrote photon, which I took ideas from to create this tool
 - The folks from [gocolly](https://github.com/gocolly/colly), the library which powers the crawler engine
 - [oxffaa](https://github.com/oxffaa/), who wrote a very efficient sitemap.xml parser which is used in this tool
+- The contributors of [LinkFinder](https://github.com/GerbenJavado/LinkFinder) where some awesome regex was stolen to parse links from JavaScript files.
 
 ## Installation
 1. Install Golang
@@ -103,6 +105,8 @@ Usage of hakrawler:
     	Query wayback machine for URLs and add them as seeds for the crawler
   -wayback
     	Include wayback machine entries in output
+  -linkfinder
+      Search all JavaScript files for more links. Note that these will not be complete links, only relative. Parsing full links from JavaScript is too resource intensive.
 ```
 
 ## Basic Example
