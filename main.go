@@ -2,13 +2,11 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"flag"
 	"fmt"
-	"github.com/gocolly/colly"
-	"github.com/google/uuid"
-	. "github.com/logrusorgru/aurora"
-	"github.com/oxffaa/gopher-parse-sitemap"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -16,6 +14,17 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/gocolly/colly"
+	"github.com/google/uuid"
+	. "github.com/logrusorgru/aurora"
+	sitemap "github.com/oxffaa/gopher-parse-sitemap"
+)
+
+var (
+	// regular expression from LinkFinder.
+	LinkFinderRegex, _ = regexp.Compile(`(?:"|')(((?:[a-zA-Z]{1,10}://|//)[^"'/]{1,}\.[a-zA-Z]{2,}[^"']{0,})|((?:/|\.\./|\./)[^"'><,;| *()(%%$^/\\\[\]][^"'><,;|()]{1,})|([a-zA-Z0-9_\-/]{1,}/[a-zA-Z0-9_\-/]{1,}\.(?:[a-zA-Z]{1,4}|action)(?:[\?|/][^"|']{0,}|))
+|([a-zA-Z0-9_\-]{1,}\.(?:php|asp|aspx|jsp|json|action|html|js|txt|xml)(?:\?[^"|']{0,}|)))(?:"|')`)
 )
 
 func banner(au Aurora) {
@@ -47,17 +56,16 @@ func printToRandomFile(msg string, dir string) {
 
 	err := ioutil.WriteFile(dir+"hakrawler_"+uuid.String()+".req", []byte(msg), 0644)
 	if err != nil {
-		fmt.Println("ERROR: ", err)
-		os.Exit(3)
+		log.Fatalf("ERROR: %v\n", err)
 	}
 }
 
-// determines whether the domains/urls should be printed based on the provided scope
-func printIfInScope(scope string, tag Value, schema string, domain string, msg string, plain bool, outdirPtr *string) {
+// determines whether the domains/urls should be printed based on the provided scope (returns true/false)
+func printIfInScope(scope string, tag Value, schema string, domain string, msg string, plain bool, outdirPtr *string) bool {
 	base, err := url.Parse(schema + domain)
 	if err != nil {
 		// Error parsing base domain
-		return
+		return false
 	}
 
 	var msgSchema string
@@ -71,7 +79,7 @@ func printIfInScope(scope string, tag Value, schema string, domain string, msg s
 	urlObj, err := url.Parse(msgSchema + msg)
 	if err != nil {
 		// the url can't be parsed, move on with reckless abandon
-		return
+		return false
 	}
 	urlObj = base.ResolveReference(urlObj)
 
@@ -99,6 +107,7 @@ func printIfInScope(scope string, tag Value, schema string, domain string, msg s
 			printToRandomFile(rawHTTPGET(msg), *outdirPtr)
 		}
 	}
+	return shouldPrint
 }
 
 func rawHTTPGET(url string) string {
@@ -122,7 +131,7 @@ func parseSitemap(domain string, depth int, c colly.Collector, printResult bool,
 	sitemapURL := schema + domain + "/sitemap.xml"
 	sitemap.ParseFromSite(sitemapURL, func(e sitemap.Entry) error {
 		if printResult {
-			printIfInScope(scope, au.BrightBlue("[sitemap]"), schema, domain, e.GetLocation(), plain, outdirPtr)
+			_ = printIfInScope(scope, au.BrightBlue("[sitemap]"), schema, domain, e.GetLocation(), plain, outdirPtr)
 		}
 		// if depth is greater than 1, add sitemap url as seed
 		if depth > 1 {
@@ -153,7 +162,7 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool, 
 			if strings.Contains(line, "llow: ") {
 				urlstring := re.ReplaceAllString(line, "")
 				if printResult {
-					printIfInScope(scope, au.BrightMagenta("[robots]"), schema, domain, schema+domain+urlstring, plain, outdirPtr)
+					_ = printIfInScope(scope, au.BrightMagenta("[robots]"), schema, domain, schema+domain+urlstring, plain, outdirPtr)
 				}
 				//add it to a slice for parsing later
 				robotsurls = append(robotsurls, schema+domain+urlstring)
@@ -167,8 +176,28 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool, 
 		}
 	}
 }
+func linkfinder(jsfile string, tag Value, plain *bool) {
+	// skip tls verification
+	client := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+	resp, err := client.Get(jsfile)
+	if err != nil {
+		return
+	}
+	//  if js file exists
+	if resp.StatusCode == 200 {
+		res, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return
+		}
+		resp.Body.Close()
+		found := LinkFinderRegex.FindAllString(string(res), -1)
+		for _, link := range found {
+			colorPrint(tag, link, *plain)
+		}
 
-func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, includeSubsPtr *bool, includeURLsPtr *bool, includeFormsPtr *bool, includeRobotsPtr *bool, includeSitemapPtr *bool, includeWaybackPtr *bool, includeAllPtr *bool, cookiePtr *string, authHeaderPtr *string, scopePtr *string, schemaPtr *string, wayback *bool, plain *bool, au Aurora, domainwg *sync.WaitGroup) {
+	}
+}
+func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, includeSubsPtr *bool, includeURLsPtr *bool, includeFormsPtr *bool, includeRobotsPtr *bool, includeSitemapPtr *bool, includeWaybackPtr *bool, includeAllPtr *bool, cookiePtr *string, authHeaderPtr *string, scopePtr *string, schemaPtr *string, wayback *bool, runlinkfinder *bool, plain *bool, au Aurora, domainwg *sync.WaitGroup) {
 
 	// make sure the domain has been set
 	if domain == "" {
@@ -227,14 +256,14 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 					fmt.Println(err)
 				} else {
 					if *includeURLsPtr || *includeAllPtr {
-						printIfInScope(*scopePtr, au.BrightYellow("[url]"), schema, domain, urlString, *plain, outdirPtr)
+						_ = printIfInScope(*scopePtr, au.BrightYellow("[url]"), schema, domain, urlString, *plain, outdirPtr)
 						urls[urlString] = struct{}{}
 					}
 					// if this is a new subdomain, print it
 					if *includeSubsPtr || *includeAllPtr {
 						if _, ok := subdomains[urlObj.Host]; !ok {
 							if urlObj.Host != "" {
-								printIfInScope(*scopePtr, au.BrightGreen("[subdomain]"), schema, domain, urlObj.Host, *plain, outdirPtr)
+								_ = printIfInScope(*scopePtr, au.BrightGreen("[subdomain]"), schema, domain, urlObj.Host, *plain, outdirPtr)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -251,7 +280,12 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
 			if _, ok := jsfiles[jsfile]; !ok {
 				if jsfile != "" {
-					printIfInScope(*scopePtr, au.BrightRed("[javascript]"), schema, domain, jsfile, *plain, outdirPtr)
+					inScope := printIfInScope(*scopePtr, au.BrightRed("[javascript]"), schema, domain, jsfile, *plain, outdirPtr)
+					if inScope {
+						if *runlinkfinder {
+							linkfinder(jsfile, au.BrightRed("[linkfinder]"), plain)
+						}
+					}
 					jsfiles[jsfile] = struct{}{}
 				}
 			}
@@ -264,7 +298,7 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 			form := e.Request.AbsoluteURL(e.Attr("action"))
 			if _, ok := forms[form]; !ok {
 				if form != "" {
-					printIfInScope(*scopePtr, au.BrightCyan("[form]"), schema, domain, form, *plain, outdirPtr)
+					_ = printIfInScope(*scopePtr, au.BrightCyan("[form]"), schema, domain, form, *plain, outdirPtr)
 					forms[form] = struct{}{}
 				}
 			}
@@ -310,7 +344,7 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 			// print wayback results, if depth >1, also add them to the crawl queue
 			for _, waybackurl := range waybackurls {
 				if *includeWaybackPtr || *includeAllPtr {
-					printIfInScope(*scopePtr, au.Yellow("[wayback]"), schema, domain, waybackurl, *plain, outdirPtr)
+					_ = printIfInScope(*scopePtr, au.Yellow("[wayback]"), schema, domain, waybackurl, *plain, outdirPtr)
 				}
 				// if this is a new subdomain, print it
 				urlObj, err := url.Parse(waybackurl)
@@ -322,7 +356,7 @@ func crawl(domain string, depthPtr *int, outdirPtr *string, includeJSPtr *bool, 
 					if _, ok := subdomains[urlObj.Host]; !ok {
 						if urlObj.Host != "" {
 							if strings.Contains(urlObj.Host, domain) {
-								printIfInScope(*scopePtr, au.BrightGreen("[subdomain]"), schema, domain, urlObj.Host, *plain, outdirPtr)
+								_ = printIfInScope(*scopePtr, au.BrightGreen("[subdomain]"), schema, domain, urlObj.Host, *plain, outdirPtr)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -357,6 +391,7 @@ func main() {
 	schemaPtr := flag.String("schema", "http", "Schema, http or https")
 	wayback := flag.Bool("usewayback", false, "Query wayback machine for URLs and add them as seeds for the crawler")
 	plain := flag.Bool("plain", false, "Don't use colours or print the banners to allow for easier parsing")
+	runlinkfinder := flag.Bool("linkfinder", false, "Run linkfinder on javascript files.")
 
 	// which data to include in output?
 	includeJSPtr := flag.Bool("js", false, "Include links to utilised JavaScript files")
@@ -384,14 +419,14 @@ func main() {
 		// There's a better way to do this
 		domain := *domainPtr
 		domainwg.Add(1)
-		go crawl(domain, depthPtr, outdirPtr, includeJSPtr, includeSubsPtr, includeURLsPtr, includeFormsPtr, includeRobotsPtr, includeSitemapPtr, includeWaybackPtr, includeAllPtr, cookiePtr, authHeaderPtr, scopePtr, schemaPtr, wayback, plain, au, &domainwg)
+		go crawl(domain, depthPtr, outdirPtr, includeJSPtr, includeSubsPtr, includeURLsPtr, includeFormsPtr, includeRobotsPtr, includeSitemapPtr, includeWaybackPtr, includeAllPtr, cookiePtr, authHeaderPtr, scopePtr, schemaPtr, wayback, runlinkfinder, plain, au, &domainwg)
 	} else {
 		// get domains from stdin
 		sc := bufio.NewScanner(os.Stdin)
 		for sc.Scan() {
 			domainwg.Add(1)
 			domain := strings.ToLower(sc.Text())
-			go crawl(domain, depthPtr, outdirPtr, includeJSPtr, includeSubsPtr, includeURLsPtr, includeFormsPtr, includeRobotsPtr, includeSitemapPtr, includeWaybackPtr, includeAllPtr, cookiePtr, authHeaderPtr, scopePtr, schemaPtr, wayback, plain, au, &domainwg)
+			go crawl(domain, depthPtr, outdirPtr, includeJSPtr, includeSubsPtr, includeURLsPtr, includeFormsPtr, includeRobotsPtr, includeSitemapPtr, includeWaybackPtr, includeAllPtr, cookiePtr, authHeaderPtr, scopePtr, schemaPtr, wayback, runlinkfinder, plain, au, &domainwg)
 		}
 	}
 	domainwg.Wait()
