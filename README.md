@@ -40,6 +40,7 @@ assetfinder target.com | hakrawler | some-xss-scanner
 - [hakluke](https://twitter.com/hakluke) wrote the tool
 - [cablej](https://cablej.io/) cleaned up the code
 - [Corben Leo](https://github.com/lc) added in functionality to pull links from JavaScript files
+- [delic](https://github.com/delic) made the code much cleaner
 
 ## Thanks
 
