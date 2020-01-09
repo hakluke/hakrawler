@@ -1,13 +1,12 @@
 package hakrawler
 
 type Config struct {
-	Domain        string
+	Url           string
 	Depth         int
 	Outdir        string
 	Cookie        string
 	AuthHeader    string
 	Scope         string
-	Schema        string
 	Wayback       bool
 	Plain         bool
 	Runlinkfinder bool
@@ -25,13 +24,12 @@ type Config struct {
 func NewConfig() Config {
 	var conf Config
 	// default values
-	conf.Domain = ""
+	conf.Url = ""
 	conf.Depth = 1
 	conf.Outdir = ""
 	conf.Cookie = ""
 	conf.AuthHeader = ""
 	conf.Scope = "subs"
-	conf.Schema = "http"
 	conf.Wayback = false
 	conf.Plain = false
 	conf.Runlinkfinder = false

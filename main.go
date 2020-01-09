@@ -62,49 +62,47 @@ func printToRandomFile(msg string, dir string) {
 	}
 }
 
+func parseHostFromURL(u string) (string, error) {
+	parsed, err := url.Parse(u)
+	if err != nil {
+		return "", err
+	}
+	return parsed.Host, nil
+}
+
 // determines whether the domains/urls should be printed based on the provided scope (returns true/false)
-func printIfInScope(conf hakrawler.Config, tag Value, schema string, msg string) bool {
-	base, err := url.Parse(schema + conf.Domain)
+func printIfInScope(conf hakrawler.Config, tag Value, msg string) bool {
+	basehost, err := parseHostFromURL(conf.Url)
 	if err != nil {
 		// Error parsing base domain
 		return false
 	}
 
-	msgSchema := ""
-	if !strings.Contains(msg, "http://") && !strings.Contains(msg, "https://") && !strings.HasPrefix(msg, "/") {
-		msgSchema = "https://"
+	msghost := msg
+	if strings.Contains(msg, "://") {
+		msghost, err = parseHostFromURL(msg)
+		if err != nil {
+			// the url can't be parsed, move on with reckless abandon
+			return false
+		}
 	}
 
-	urlObj, err := url.Parse(msgSchema + msg)
-	if err != nil {
-		// the url can't be parsed, move on with reckless abandon
-		return false
-	}
-	urlObj = base.ResolveReference(urlObj)
-
-	shouldPrint := false
+	shouldPrint := true
 
 	switch conf.Scope {
 	case "strict":
-		shouldPrint = urlObj.Host == conf.Domain
+		shouldPrint = msghost == basehost
 	case "fuzzy":
-		shouldPrint = strings.Contains(urlObj.Host, conf.Domain)
+		shouldPrint = strings.Contains(msghost, basehost)
 	case "subs":
-		shouldPrint = strings.HasSuffix(urlObj.Host, conf.Domain)
-	default:
-		shouldPrint = true
+		shouldPrint = strings.HasSuffix(msghost, basehost)
 	}
 
 	if !shouldPrint {
 		return false
 	}
 
-	strVal := urlObj.String()
-	// Remove the schema if it was added before
-	if msgSchema != "" {
-		strVal = strings.Replace(strVal, msgSchema, "", 1)
-	}
-	colorPrint(tag, strVal, conf.Plain)
+	colorPrint(tag, msg, conf.Plain)
 	if conf.Outdir != "" {
 		printToRandomFile(rawHTTPGET(msg), conf.Outdir)
 	}
@@ -127,12 +125,12 @@ func rawHTTPGET(url string) string {
 	return string(raw)
 }
 
-func parseSitemap(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora) {
+func parseSitemap(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, au Aurora) {
 	defer mainwg.Done()
-	sitemapURL := schema + conf.Domain + "/sitemap.xml"
+	sitemapURL := conf.Url + "/sitemap.xml"
 	sitemap.ParseFromSite(sitemapURL, func(e sitemap.Entry) error {
 		if printResult {
-			_ = printIfInScope(conf, au.BrightBlue("[sitemap]"), schema, e.GetLocation())
+			_ = printIfInScope(conf, au.BrightBlue("[sitemap]"), e.GetLocation())
 		}
 		// if depth is greater than 1, add sitemap url as seed
 		if conf.Depth > 1 {
@@ -142,10 +140,10 @@ func parseSitemap(conf hakrawler.Config, c colly.Collector, printResult bool, ma
 	})
 }
 
-func parseRobots(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora) {
+func parseRobots(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, au Aurora) {
 	defer mainwg.Done()
 	var robotsurls []string
-	robotsURL := schema + conf.Domain + "/robots.txt"
+	robotsURL := conf.Url + "/robots.txt"
 
 	resp, err := http.Get(robotsURL)
 	if err != nil {
@@ -163,10 +161,10 @@ func parseRobots(conf hakrawler.Config, c colly.Collector, printResult bool, mai
 			if strings.Contains(line, "llow: ") {
 				urlstring := re.ReplaceAllString(line, "")
 				if printResult {
-					_ = printIfInScope(conf, au.BrightMagenta("[robots]"), schema, schema+conf.Domain+urlstring)
+					_ = printIfInScope(conf, au.BrightMagenta("[robots]"), conf.Url+urlstring)
 				}
 				//add it to a slice for parsing later
-				robotsurls = append(robotsurls, schema+conf.Domain+urlstring)
+				robotsurls = append(robotsurls, conf.Url+urlstring)
 			}
 		}
 	}
@@ -199,20 +197,6 @@ func linkfinder(jsfile string, tag Value, plain bool) {
 	}
 }
 func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
-
-	// make sure the domain has been set
-	if conf.Domain == "" {
-		fmt.Println(au.BrightRed("[error]"), "You must set a domain, e.g. -domain=example.com")
-		fmt.Println(au.BrightBlue("[info]"), "See hakrawler -h for commandline options")
-		os.Exit(1)
-	}
-
-	// set up the schema
-	schema := "http://"
-	if conf.Schema == "https" {
-		schema = "https://"
-	}
-
 	// these will store the discovered assets to avoid duplicates
 	urls := make(map[string]struct{})
 	subdomains := make(map[string]struct{})
@@ -252,14 +236,14 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 					fmt.Println(err)
 				} else {
 					if conf.IncludeURLs || conf.IncludeAll {
-						_ = printIfInScope(conf, au.BrightYellow("[url]"), schema, urlString)
+						_ = printIfInScope(conf, au.BrightYellow("[url]"), urlString)
 						urls[urlString] = struct{}{}
 					}
 					// if this is a new subdomain, print it
 					if conf.IncludeSubs || conf.IncludeAll {
 						if _, ok := subdomains[urlObj.Host]; !ok {
 							if urlObj.Host != "" {
-								_ = printIfInScope(conf, au.BrightGreen("[subdomain]"), schema, urlObj.Host)
+								_ = printIfInScope(conf, au.BrightGreen("[subdomain]"), urlObj.Host)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -276,7 +260,7 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
 			if _, ok := jsfiles[jsfile]; !ok {
 				if jsfile != "" {
-					inScope := printIfInScope(conf, au.BrightRed("[javascript]"), schema, jsfile)
+					inScope := printIfInScope(conf, au.BrightRed("[javascript]"), jsfile)
 					if inScope {
 						if conf.Runlinkfinder {
 							linkfinder(jsfile, au.BrightRed("[linkfinder]"), conf.Plain)
@@ -294,7 +278,7 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 			form := e.Request.AbsoluteURL(e.Attr("action"))
 			if _, ok := forms[form]; !ok {
 				if form != "" {
-					_ = printIfInScope(conf, au.BrightCyan("[form]"), schema, form)
+					_ = printIfInScope(conf, au.BrightCyan("[form]"), form)
 					forms[form] = struct{}{}
 				}
 			}
@@ -313,24 +297,28 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 
 	// robots.txt
 	mainwg.Add(1)
-	go parseRobots(conf, *c, printRobots, &mainwg, schema, au)
+	go parseRobots(conf, *c, printRobots, &mainwg, au)
 
 	// sitemap.xml
 	mainwg.Add(1)
-	go parseSitemap(conf, *c, printSitemap, &mainwg, schema, au)
+	go parseSitemap(conf, *c, printSitemap, &mainwg, au)
 
 	// waybackurls
 	if conf.Wayback {
 		go func() {
 			mainwg.Add(1)
 			defer mainwg.Done()
+			host, err := parseHostFromURL(conf.Url)
+			if err != nil {
+				return
+			}
 			// get results from waybackurls
-			waybackurls := WaybackURLs(conf.Domain)
+			waybackurls := WaybackURLs(host)
 
 			// print wayback results, if depth >1, also add them to the crawl queue
 			for _, waybackurl := range waybackurls {
 				if conf.IncludeWayback || conf.IncludeAll {
-					_ = printIfInScope(conf, au.Yellow("[wayback]"), schema, waybackurl)
+					_ = printIfInScope(conf, au.Yellow("[wayback]"), waybackurl)
 				}
 				// if this is a new subdomain, print it
 				urlObj, err := url.Parse(waybackurl)
@@ -341,8 +329,8 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 				if conf.IncludeSubs || conf.IncludeAll {
 					if _, ok := subdomains[urlObj.Host]; !ok {
 						if urlObj.Host != "" {
-							if strings.Contains(urlObj.Host, conf.Domain) {
-								_ = printIfInScope(conf, au.BrightGreen("[subdomain]"), schema, urlObj.Host)
+							if strings.Contains(urlObj.Host, conf.Url) {
+								_ = printIfInScope(conf, au.BrightGreen("[subdomain]"), urlObj.Host)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -359,7 +347,7 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 	mainwg.Add(1)
 	go func() {
 		defer mainwg.Done()
-		c.Visit(schema + conf.Domain)
+		c.Visit(conf.Url)
 	}()
 
 	mainwg.Wait()
@@ -369,13 +357,12 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 func main() {
 	conf := hakrawler.NewConfig()
 	// define and parse command line flags
-	flag.StringVar(&conf.Domain, "domain", "", "The domain that you wish to crawl (for example, google.com)")
+	flag.StringVar(&conf.Url, "url", "", "The url that you wish to crawl, e.g. google.com or https://example.com. Schema defaults to http")
 	flag.IntVar(&conf.Depth, "depth", 1, "Maximum depth to crawl, the default is 1. Anything above 1 will include URLs from robots, sitemap, waybackurls and the initial crawler as a seed. Higher numbers take longer but yield more results.")
 	flag.StringVar(&conf.Outdir, "outdir", "", "Directory to save discovered raw HTTP requests")
 	flag.StringVar(&conf.Cookie, "cookie", "", "The value of this will be included as a Cookie header")
 	flag.StringVar(&conf.AuthHeader, "auth", "", "The value of this will be included as a Authorization header")
 	flag.StringVar(&conf.Scope, "scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nfuzzy = anything containing the supplied domain\nyolo = everything")
-	flag.StringVar(&conf.Schema, "schema", "http", "Schema, http or https")
 	flag.BoolVar(&conf.Wayback, "usewayback", false, "Query wayback machine for URLs and add them as seeds for the crawler")
 	flag.BoolVar(&conf.Plain, "plain", false, "Don't use colours or print the banners to allow for easier parsing")
 	flag.BoolVar(&conf.Runlinkfinder, "linkfinder", false, "Run linkfinder on javascript files.")
@@ -396,6 +383,11 @@ func main() {
 		conf.IncludeAll = false
 	}
 
+	// url set but does not include schema
+	if !strings.Contains(conf.Url, "://") && conf.Url != "" {
+		conf.Url = "http://" + conf.Url
+	}
+
 	au := NewAurora(!conf.Plain)
 
 	// print the banner
@@ -405,7 +397,7 @@ func main() {
 
 	// decide whether to use -domain or stdin
 	var domainwg sync.WaitGroup
-	if conf.Domain != "" {
+	if conf.Url != "" {
 		// in this case, the waitgroup is not necessary as there is only 1 domain
 		// I added it anyway because the function is expecting a wg pointer
 		// There's a better way to do this
@@ -416,8 +408,13 @@ func main() {
 		sc := bufio.NewScanner(os.Stdin)
 		for sc.Scan() {
 			domainwg.Add(1)
-			conf.Domain = strings.ToLower(sc.Text())
-			go crawl(conf, au, &domainwg)
+			conf.Url = strings.ToLower(sc.Text())
+			if !strings.Contains(conf.Url, "://") && conf.Url != "" {
+				conf.Url = "http://" + conf.Url
+			}
+			if conf.Url != "" {
+				go crawl(conf, au, &domainwg)
+			}
 		}
 	}
 	domainwg.Wait()
