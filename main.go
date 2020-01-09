@@ -70,12 +70,9 @@ func printIfInScope(conf hakrawler.Config, tag Value, schema string, msg string)
 		return false
 	}
 
-	var msgSchema string
-
+	msgSchema := ""
 	if !strings.Contains(msg, "http://") && !strings.Contains(msg, "https://") && !strings.HasPrefix(msg, "/") {
 		msgSchema = "https://"
-	} else {
-		msgSchema = ""
 	}
 
 	urlObj, err := url.Parse(msgSchema + msg)
@@ -98,18 +95,20 @@ func printIfInScope(conf hakrawler.Config, tag Value, schema string, msg string)
 		shouldPrint = true
 	}
 
-	if shouldPrint {
-		strVal := urlObj.String()
-		// Remove the schema if it was added before
-		if msgSchema != "" {
-			strVal = strings.Replace(strVal, msgSchema, "", 1)
-		}
-		colorPrint(tag, strVal, conf.Plain)
-		if conf.Outdir != "" {
-			printToRandomFile(rawHTTPGET(msg), conf.Outdir)
-		}
+	if !shouldPrint {
+		return false
 	}
-	return shouldPrint
+
+	strVal := urlObj.String()
+	// Remove the schema if it was added before
+	if msgSchema != "" {
+		strVal = strings.Replace(strVal, msgSchema, "", 1)
+	}
+	colorPrint(tag, strVal, conf.Plain)
+	if conf.Outdir != "" {
+		printToRandomFile(rawHTTPGET(msg), conf.Outdir)
+	}
+	return true
 }
 
 func rawHTTPGET(url string) string {
@@ -243,11 +242,11 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 
 	// find and visit the links
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		var urlString string = e.Request.AbsoluteURL(e.Attr("href"))
+		urlString := e.Request.AbsoluteURL(e.Attr("href"))
 		// if the url isn't already there, print and save it, if it's a new subdomain, print that too
 		if _, ok := urls[urlString]; !ok {
 			if urlString != "" {
-				var urlObj, err = url.Parse(urlString)
+				urlObj, err := url.Parse(urlString)
 				// ditch unparseable URLs
 				if err != nil {
 					fmt.Println(err)
@@ -303,20 +302,10 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 	}
 
 	// figure out if the results from robots.txt should be printed
-	var printRobots bool
-	if conf.IncludeRobots || conf.IncludeAll {
-		printRobots = true
-	} else {
-		printRobots = false
-	}
+	printRobots := conf.IncludeRobots || conf.IncludeAll
 
 	// figure out of the results from sitemap.xml should be printed
-	var printSitemap bool
-	if conf.IncludeSitemap || conf.IncludeAll {
-		printSitemap = true
-	} else {
-		printSitemap = false
-	}
+	printSitemap := conf.IncludeSitemap || conf.IncludeAll
 
 	// do all the things
 	// setup a waitgroup to run all methods at the same time
