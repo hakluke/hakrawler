@@ -63,8 +63,8 @@ func printToRandomFile(msg string, dir string) {
 }
 
 // determines whether the domains/urls should be printed based on the provided scope (returns true/false)
-func printIfInScope(scope string, tag Value, schema string, domain string, msg string, plain bool, outdirPtr *string) bool {
-	base, err := url.Parse(schema + domain)
+func printIfInScope(conf hakrawler.Config, tag Value, schema string, msg string) bool {
+	base, err := url.Parse(schema + conf.Domain)
 	if err != nil {
 		// Error parsing base domain
 		return false
@@ -87,13 +87,13 @@ func printIfInScope(scope string, tag Value, schema string, domain string, msg s
 
 	shouldPrint := false
 
-	switch scope {
+	switch conf.Scope {
 	case "strict":
-		shouldPrint = urlObj.Host == domain
+		shouldPrint = urlObj.Host == conf.Domain
 	case "fuzzy":
-		shouldPrint = strings.Contains(urlObj.Host, domain)
+		shouldPrint = strings.Contains(urlObj.Host, conf.Domain)
 	case "subs":
-		shouldPrint = strings.HasSuffix(urlObj.Host, domain)
+		shouldPrint = strings.HasSuffix(urlObj.Host, conf.Domain)
 	default:
 		shouldPrint = true
 	}
@@ -104,9 +104,9 @@ func printIfInScope(scope string, tag Value, schema string, domain string, msg s
 		if msgSchema != "" {
 			strVal = strings.Replace(strVal, msgSchema, "", 1)
 		}
-		colorPrint(tag, strVal, plain)
-		if *outdirPtr != "" {
-			printToRandomFile(rawHTTPGET(msg), *outdirPtr)
+		colorPrint(tag, strVal, conf.Plain)
+		if conf.Outdir != "" {
+			printToRandomFile(rawHTTPGET(msg), conf.Outdir)
 		}
 	}
 	return shouldPrint
@@ -128,25 +128,25 @@ func rawHTTPGET(url string) string {
 	return string(raw)
 }
 
-func parseSitemap(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora, plain bool, scope string, outdirPtr *string) {
+func parseSitemap(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora) {
 	defer mainwg.Done()
-	sitemapURL := schema + domain + "/sitemap.xml"
+	sitemapURL := schema + conf.Domain + "/sitemap.xml"
 	sitemap.ParseFromSite(sitemapURL, func(e sitemap.Entry) error {
 		if printResult {
-			_ = printIfInScope(scope, au.BrightBlue("[sitemap]"), schema, domain, e.GetLocation(), plain, outdirPtr)
+			_ = printIfInScope(conf, au.BrightBlue("[sitemap]"), schema, e.GetLocation())
 		}
 		// if depth is greater than 1, add sitemap url as seed
-		if depth > 1 {
+		if conf.Depth > 1 {
 			c.Visit(e.GetLocation())
 		}
 		return nil
 	})
 }
 
-func parseRobots(domain string, depth int, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora, plain bool, scope string, outdirPtr *string) {
+func parseRobots(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, schema string, au Aurora) {
 	defer mainwg.Done()
 	var robotsurls []string
-	robotsURL := schema + domain + "/robots.txt"
+	robotsURL := schema + conf.Domain + "/robots.txt"
 
 	resp, err := http.Get(robotsURL)
 	if err != nil {
@@ -164,15 +164,15 @@ func parseRobots(domain string, depth int, c colly.Collector, printResult bool, 
 			if strings.Contains(line, "llow: ") {
 				urlstring := re.ReplaceAllString(line, "")
 				if printResult {
-					_ = printIfInScope(scope, au.BrightMagenta("[robots]"), schema, domain, schema+domain+urlstring, plain, outdirPtr)
+					_ = printIfInScope(conf, au.BrightMagenta("[robots]"), schema, schema+conf.Domain+urlstring)
 				}
 				//add it to a slice for parsing later
-				robotsurls = append(robotsurls, schema+domain+urlstring)
+				robotsurls = append(robotsurls, schema+conf.Domain+urlstring)
 			}
 		}
 	}
 	// if depth is greater than 1, add all of the robots urls as seeds
-	if depth > 1 {
+	if conf.Depth > 1 {
 		for _, robotsurl := range robotsurls {
 			c.Visit(robotsurl)
 		}
@@ -253,14 +253,14 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 					fmt.Println(err)
 				} else {
 					if conf.IncludeURLs || conf.IncludeAll {
-						_ = printIfInScope(conf.Scope, au.BrightYellow("[url]"), schema, conf.Domain, urlString, conf.Plain, &conf.Outdir)
+						_ = printIfInScope(conf, au.BrightYellow("[url]"), schema, urlString)
 						urls[urlString] = struct{}{}
 					}
 					// if this is a new subdomain, print it
 					if conf.IncludeSubs || conf.IncludeAll {
 						if _, ok := subdomains[urlObj.Host]; !ok {
 							if urlObj.Host != "" {
-								_ = printIfInScope(conf.Scope, au.BrightGreen("[subdomain]"), schema, conf.Domain, urlObj.Host, conf.Plain, &conf.Outdir)
+								_ = printIfInScope(conf, au.BrightGreen("[subdomain]"), schema, urlObj.Host)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
@@ -277,7 +277,7 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 			jsfile := e.Request.AbsoluteURL(e.Attr("src"))
 			if _, ok := jsfiles[jsfile]; !ok {
 				if jsfile != "" {
-					inScope := printIfInScope(conf.Scope, au.BrightRed("[javascript]"), schema, conf.Domain, jsfile, conf.Plain, &conf.Outdir)
+					inScope := printIfInScope(conf, au.BrightRed("[javascript]"), schema, jsfile)
 					if inScope {
 						if conf.Runlinkfinder {
 							linkfinder(jsfile, au.BrightRed("[linkfinder]"), conf.Plain)
@@ -295,7 +295,7 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 			form := e.Request.AbsoluteURL(e.Attr("action"))
 			if _, ok := forms[form]; !ok {
 				if form != "" {
-					_ = printIfInScope(conf.Scope, au.BrightCyan("[form]"), schema, conf.Domain, form, conf.Plain, &conf.Outdir)
+					_ = printIfInScope(conf, au.BrightCyan("[form]"), schema, form)
 					forms[form] = struct{}{}
 				}
 			}
@@ -324,11 +324,11 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 
 	// robots.txt
 	mainwg.Add(1)
-	go parseRobots(conf.Domain, conf.Depth, *c, printRobots, &mainwg, schema, au, conf.Plain, conf.Scope, &conf.Outdir)
+	go parseRobots(conf, *c, printRobots, &mainwg, schema, au)
 
 	// sitemap.xml
 	mainwg.Add(1)
-	go parseSitemap(conf.Domain, conf.Depth, *c, printSitemap, &mainwg, schema, au, conf.Plain, conf.Scope, &conf.Outdir)
+	go parseSitemap(conf, *c, printSitemap, &mainwg, schema, au)
 
 	// waybackurls
 	if conf.Wayback {
@@ -341,7 +341,7 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 			// print wayback results, if depth >1, also add them to the crawl queue
 			for _, waybackurl := range waybackurls {
 				if conf.IncludeWayback || conf.IncludeAll {
-					_ = printIfInScope(conf.Scope, au.Yellow("[wayback]"), schema, conf.Domain, waybackurl, conf.Plain, &conf.Outdir)
+					_ = printIfInScope(conf, au.Yellow("[wayback]"), schema, waybackurl)
 				}
 				// if this is a new subdomain, print it
 				urlObj, err := url.Parse(waybackurl)
@@ -353,7 +353,7 @@ func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
 					if _, ok := subdomains[urlObj.Host]; !ok {
 						if urlObj.Host != "" {
 							if strings.Contains(urlObj.Host, conf.Domain) {
-								_ = printIfInScope(conf.Scope, au.BrightGreen("[subdomain]"), schema, conf.Domain, urlObj.Host, conf.Plain, &conf.Outdir)
+								_ = printIfInScope(conf, au.BrightGreen("[subdomain]"), schema, urlObj.Host)
 								subdomains[urlObj.Host] = struct{}{}
 							}
 						}
