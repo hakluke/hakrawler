@@ -19,17 +19,17 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/google/uuid"
-	. "github.com/logrusorgru/aurora"
+	"github.com/logrusorgru/aurora"
 	sitemap "github.com/oxffaa/gopher-parse-sitemap"
 )
 
 var (
-	// regular expression from LinkFinder.
+	// LinkFinderRegex pre-compiled for linkfinder
 	LinkFinderRegex, _ = regexp.Compile(`(?:"|')(((?:[a-zA-Z]{1,10}://|//)[^"'/]{1,}\.[a-zA-Z]{2,}[^"']{0,})|((?:/|\.\./|\./)[^"'><,;| *()(%%$^/\\\[\]][^"'><,;|()]{1,})|([a-zA-Z0-9_\-/]{1,}/[a-zA-Z0-9_\-/]{1,}\.(?:[a-zA-Z]{1,4}|action)(?:[\?|/][^"|']{0,}|))
 |([a-zA-Z0-9_\-]{1,}\.(?:php|asp|aspx|jsp|json|action|html|js|txt|xml)(?:\?[^"|']{0,}|)))(?:"|')`)
 )
 
-func banner(au Aurora) {
+func banner(au aurora.Aurora) {
 	fmt.Print(au.BrightRed(`
 ██╗  ██╗ █████╗ ██╗  ██╗██████╗  █████╗ ██╗    ██╗██╗     ███████╗██████╗
 ██║  ██║██╔══██╗██║ ██╔╝██╔══██╗██╔══██╗██║    ██║██║     ██╔════╝██╔══██╗
@@ -38,11 +38,11 @@ func banner(au Aurora) {
 ██║  ██║██║  ██║██║  ██╗██║  ██║██║  ██║╚███╔███╔╝███████╗███████╗██║  ██║
 ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝ ╚══════╝╚══════╝╚═╝  ╚═╝
 `))
-	fmt.Println(BgBlue(au.BrightYellow("                        Crafted with <3 by hakluke                        ")))
+	fmt.Println(aurora.BgBlue(au.BrightYellow("                        Crafted with <3 by hakluke                        ")))
 }
 
 // if -plain is set, just print the message, otherwise print a coloured tag and then the message
-func colorPrint(tag Value, msg string, plain bool) {
+func colorPrint(tag aurora.Value, msg string, plain bool) {
 	if plain {
 		fmt.Println(msg)
 	} else {
@@ -71,7 +71,7 @@ func parseHostFromURL(u string) (string, error) {
 }
 
 // determines whether the domains/urls should be printed based on the provided scope (returns true/false)
-func printIfInScope(conf hakrawler.Config, tag Value, msg string) bool {
+func printIfInScope(conf hakrawler.Config, tag aurora.Value, msg string) bool {
 	basehost, err := parseHostFromURL(conf.Url)
 	if err != nil {
 		// Error parsing base domain
@@ -125,7 +125,7 @@ func rawHTTPGET(url string) string {
 	return string(raw)
 }
 
-func parseSitemap(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, au Aurora) {
+func parseSitemap(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, au aurora.Aurora) {
 	defer mainwg.Done()
 	sitemapURL := conf.Url + "/sitemap.xml"
 	sitemap.ParseFromSite(sitemapURL, func(e sitemap.Entry) error {
@@ -140,7 +140,7 @@ func parseSitemap(conf hakrawler.Config, c colly.Collector, printResult bool, ma
 	})
 }
 
-func parseRobots(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, au Aurora) {
+func parseRobots(conf hakrawler.Config, c colly.Collector, printResult bool, mainwg *sync.WaitGroup, au aurora.Aurora) {
 	defer mainwg.Done()
 	var robotsurls []string
 	robotsURL := conf.Url + "/robots.txt"
@@ -175,7 +175,7 @@ func parseRobots(conf hakrawler.Config, c colly.Collector, printResult bool, mai
 		}
 	}
 }
-func linkfinder(jsfile string, tag Value, plain bool) {
+func linkfinder(jsfile string, tag aurora.Value, plain bool) {
 	// skip tls verification
 	client := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 	resp, err := client.Get(jsfile)
@@ -196,7 +196,7 @@ func linkfinder(jsfile string, tag Value, plain bool) {
 
 	}
 }
-func crawl(conf hakrawler.Config, au Aurora, domainwg *sync.WaitGroup) {
+func crawl(conf hakrawler.Config, au aurora.Aurora, domainwg *sync.WaitGroup) {
 	// these will store the discovered assets to avoid duplicates
 	urls := make(map[string]struct{})
 	subdomains := make(map[string]struct{})
@@ -388,7 +388,7 @@ func main() {
 		conf.Url = "http://" + conf.Url
 	}
 
-	au := NewAurora(!conf.Plain)
+	au := aurora.NewAurora(!conf.Plain)
 
 	// print the banner
 	if !conf.Plain {
