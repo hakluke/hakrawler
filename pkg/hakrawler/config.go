@@ -7,10 +7,12 @@ type Config struct {
 	Cookie        string
 	AuthHeader    string
 	Scope         string
+	Version       string
 	Wayback       bool
 	Plain         bool
 	Runlinkfinder bool
 	// output flags
+	DisplayVersion bool
 	IncludeJS      bool
 	IncludeSubs    bool
 	IncludeURLs    bool
@@ -24,6 +26,8 @@ type Config struct {
 func NewConfig() Config {
 	var conf Config
 	// default values
+	conf.Version = "beta 1" 
+	conf.DisplayVersion = false
 	conf.Url = ""
 	conf.Depth = 1
 	conf.Outdir = ""

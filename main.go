@@ -368,6 +368,7 @@ func main() {
 	flag.BoolVar(&conf.Runlinkfinder, "linkfinder", false, "Run linkfinder on javascript files.")
 
 	// which data to include in output?
+	flag.BoolVar(&conf.DisplayVersion, "v", false, "Display version and exit")
 	flag.BoolVar(&conf.IncludeJS, "js", false, "Include links to utilised JavaScript files")
 	flag.BoolVar(&conf.IncludeSubs, "subs", false, "Include subdomains in output")
 	flag.BoolVar(&conf.IncludeURLs, "urls", false, "Include URLs in output")
@@ -377,6 +378,12 @@ func main() {
 	flag.BoolVar(&conf.IncludeWayback, "wayback", false, "Include wayback machine entries in output")
 	flag.BoolVar(&conf.IncludeAll, "all", true, "Include everything in output - this is the default, so this option is superfluous")
 	flag.Parse()
+
+	// if -v is given, just display version number and exit
+	if conf.DisplayVersion {
+		fmt.Println(conf.Version)	
+		os.Exit(1)
+	}
 
 	// set up the bools
 	if conf.IncludeJS || conf.IncludeSubs || conf.IncludeURLs || conf.IncludeForms || conf.IncludeRobots || conf.IncludeSitemap {
