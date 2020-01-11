@@ -1,4 +1,4 @@
-package main
+package collector
 
 // this is a 99.9% copypasta from github.com/tomnomnom/waybackurls
 // thanks tom <3
@@ -15,8 +15,7 @@ import (
 	"sync"
 )
 
-// WaybackURLs - fetch known URLs from the Wayback Machine for domain and return them
-func WaybackURLs(domain string) []string {
+func waybackURLs(domain string) []string {
 	var waybackurls []string
 	noSubs := false
 
@@ -92,6 +91,9 @@ func getWaybackURLs(domain string, noSubs bool) ([]wurl, error) {
 
 	var wrapper [][]string
 	err = json.Unmarshal(raw, &wrapper)
+	if err != nil {
+		return []wurl{}, err
+	}
 
 	out := make([]wurl, 0, len(wrapper))
 
@@ -180,6 +182,9 @@ func getVirusTotalURLs(domain string, noSubs bool) ([]wurl, error) {
 	dec := json.NewDecoder(resp.Body)
 
 	err = dec.Decode(&wrapper)
+	if err != nil {
+		return []wurl{}, err
+	}
 
 	for _, u := range wrapper.URLs {
 		out = append(out, wurl{url: u.URL})

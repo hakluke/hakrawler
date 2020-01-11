@@ -1,5 +1,6 @@
-package hakrawler
+package config
 
+// Config represents the configuration for both the Collector and cli.
 type Config struct {
 	Url           string
 	Depth         int
@@ -23,6 +24,7 @@ type Config struct {
 	IncludeAll     bool
 }
 
+// NewConfig returns a Config with default values.
 func NewConfig() Config {
 	var conf Config
 	// default values
