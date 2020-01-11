@@ -33,7 +33,6 @@ assetfinder target.com | hakrawler | some-xss-scanner
 
 ## Upcoming features
 
-- Cleaner code
 - Want more? [Submit a feature request](https://github.com/hakluke/hakrawler/issues/new)!
 
 ## Contributors
@@ -41,6 +40,7 @@ assetfinder target.com | hakrawler | some-xss-scanner
 - [cablej](https://cablej.io/) cleaned up the code
 - [Corben Leo](https://github.com/lc) added in functionality to pull links from JavaScript files
 - [delic](https://github.com/delic) made the code much cleaner
+- [hoenn](https://github.com/hoenn) made the code even cleanerer
 
 ## Thanks
 
@@ -76,20 +76,18 @@ Usage of hakrawler:
     	The value of this will be included as a Cookie header
   -depth int
     	Maximum depth to crawl, the default is 1. Anything above 1 will include URLs from robots, sitemap, waybackurls and the initial crawler as a seed. Higher numbers take longer but yield more results. (default 1)
-  -domain string
-    	The domain that you wish to crawl (for example, google.com)
   -forms
     	Include form actions in output
   -js
     	Include links to utilised JavaScript files
+  -linkfinder
+    	Run linkfinder on javascript files.
   -outdir string
     	Directory to save discovered raw HTTP requests
   -plain
     	Don't use colours or print the banners to allow for easier parsing
   -robots
     	Include robots.txt entries in output
-  -schema string
-    	Schema, http or https (default "http")
   -scope string
     	Scope to include:
     	strict = specified domain only
@@ -100,136 +98,19 @@ Usage of hakrawler:
     	Include sitemap.xml entries in output
   -subs
     	Include subdomains in output
+  -url string
+    	The url that you wish to crawl, e.g. google.com or https://example.com. Schema defaults to http
   -urls
     	Include URLs in output
   -usewayback
     	Query wayback machine for URLs and add them as seeds for the crawler
+  -v	Display version and exit
   -wayback
     	Include wayback machine entries in output
-  -linkfinder
-      Search all JavaScript files for more links. Note that these will not be complete links, only relative. Parsing full links from JavaScript is too resource intensive.
 ```
 
 ## Basic Example
 
-### Image:
-
-Command: `hakrawler -domain bugcrowd.com -depth 1`
+Command: `hakrawler -url bugcrowd.com -depth 1`
 
 ![sample output](./hakrawler-output-sample.png)
-
-### Full text output:
-
-```
-   $ hakrawler -domain bugcrowd.com -depth 1
-
-██╗  ██╗ █████╗ ██╗  ██╗██████╗  █████╗ ██╗    ██╗██╗     ███████╗██████╗
-██║  ██║██╔══██╗██║ ██╔╝██╔══██╗██╔══██╗██║    ██║██║     ██╔════╝██╔══██╗
-███████║███████║█████╔╝ ██████╔╝███████║██║ █╗ ██║██║     █████╗  ██████╔╝
-██╔══██║██╔══██║██╔═██╗ ██╔══██╗██╔══██║██║███╗██║██║     ██╔══╝  ██╔══██╗
-██║  ██║██║  ██║██║  ██╗██║  ██║██║  ██║╚███╔███╔╝███████╗███████╗██║  ██║
-╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝ ╚══════╝╚══════╝╚═╝  ╚═╝
-                        Crafted with <3 by hakluke
-[robots] http://bugcrowd.com/*?preview
-[sitemap] https://bugcrowd.com/
-[sitemap] https://bugcrowd.com/contact/
-[sitemap] https://bugcrowd.com/faq/
-[sitemap] https://bugcrowd.com/leaderboard/
-[sitemap] https://bugcrowd.com/list-of-bug-bounty-programs/
-[sitemap] https://bugcrowd.com/press/
-[sitemap] https://bugcrowd.com/pricing/
-[sitemap] https://bugcrowd.com/privacy/
-[sitemap] https://bugcrowd.com/terms/
-[sitemap] https://bugcrowd.com/resources/responsible-disclosure-program/
-[sitemap] https://bugcrowd.com/resources/why-care-about-web-security/
-[sitemap] https://bugcrowd.com/resources/what-is-a-bug-bounty/
-[sitemap] https://bugcrowd.com/stories/movember/
-[sitemap] https://bugcrowd.com/stories/riskio/
-[sitemap] https://bugcrowd.com/stories/tagged/
-[sitemap] https://bugcrowd.com/tour/
-[sitemap] https://bugcrowd.com/tour/platform/
-[sitemap] https://bugcrowd.com/tour/crowd/
-[sitemap] https://bugcrowd.com/customers/programs/new
-[sitemap] https://bugcrowd.com/portal/
-[sitemap] https://bugcrowd.com/portal/user/sign_in/
-[sitemap] https://bugcrowd.com/portal/user/sign_up/
-[url] https://bugcrowd.com/user/sign_in
-[subdomain] bugcrowd.com
-[url] https://tracker.bugcrowd.com/user/sign_in
-[subdomain] tracker.bugcrowd.com
-[url] https://www.bugcrowd.com/
-[subdomain] www.bugcrowd.com
-[url] https://www.bugcrowd.com/products/how-it-works/
-[url] https://www.bugcrowd.com/products/how-it-works/the-bugcrowd-difference/
-[url] https://www.bugcrowd.com/products/platform/
-[url] https://www.bugcrowd.com/products/platform/integrations/
-[url] https://www.bugcrowd.com/products/platform/vulnerability-rating-taxonomy/
-[url] https://www.bugcrowd.com/products/attack-surface-management/
-[url] https://www.bugcrowd.com/products/bug-bounty/
-[url] https://www.bugcrowd.com/products/vulnerability-disclosure/
-[url] https://www.bugcrowd.com/products/next-gen-pen-test/
-[url] https://www.bugcrowd.com/products/bug-bash/
-[url] https://www.bugcrowd.com/resources/reports/priority-one-report
-[url] https://www.bugcrowd.com/solutions/
-[url] https://www.bugcrowd.com/solutions/financial-services/
-[url] https://www.bugcrowd.com/solutions/healthcare/
-[url] https://www.bugcrowd.com/solutions/retail/
-[url] https://www.bugcrowd.com/solutions/automotive-security/
-[url] https://www.bugcrowd.com/solutions/technology/
-[url] https://www.bugcrowd.com/solutions/government/
-[url] https://www.bugcrowd.com/solutions/security/
-[url] https://www.bugcrowd.com/solutions/marketplace-apps/
-[url] https://www.bugcrowd.com/customers/
-[url] https://www.bugcrowd.com/hackers/
-[url] https://bugcrowd.com/programs
-[url] https://bugcrowd.com/crowdstream
-[url] https://www.bugcrowd.com/bug-bounty-list/
-[url] https://www.bugcrowd.com/hackers/faqs/
-[url] https://www.bugcrowd.com/resources/help-wanted/
-[url] https://www.bugcrowd.com/hackers/bugcrowd-university/
-[url] https://www.bugcrowd.com/hackers/ambassador-program/
-[url] https://forum.bugcrowd.com
-[subdomain] forum.bugcrowd.com
-[url] https://bugcrowd.com/leaderboard
-[url] https://www.bugcrowd.com/resources/levelup-0x04
-[url] https://www.bugcrowd.com/resources/
-[url] https://www.bugcrowd.com/resources/webinars/
-[url] https://www.bugcrowd.com/resources/bakers-dozen/
-[url] https://www.bugcrowd.com/events/
-[url] https://www.bugcrowd.com/resources/glossary/
-[url] https://www.bugcrowd.com/resources/faqs/
-[url] https://www.bugcrowd.com/about/
-[url] https://www.bugcrowd.com/blog
-[url] https://www.bugcrowd.com/about/expertise/
-[url] https://www.bugcrowd.com/about/leadership/
-[url] https://www.bugcrowd.com/about/press-releases/
-[url] https://www.bugcrowd.com/about/careers/
-[url] https://www.bugcrowd.com/partners/
-[url] https://www.bugcrowd.com/about/news/
-[url] https://www.bugcrowd.com/about/contact/
-[url] https://bugcrowd.com/user/sign_up
-[url] https://www.bugcrowd.com/get-started/
-[url] https://www.bugcrowd.com/products/attack-surface-management
-[url] https://www.bugcrowd.com/products/bug-bounty
-[url] https://www.bugcrowd.com/customers/motorola
-[url] https://www.bugcrowd.com/products/vulnerability-disclosure
-[url] https://www.bugcrowd.com/products/next-gen-pen-test
-[url] https://www.bugcrowd.com/resources/guides/esg-research-ciso-security-trends
-[url] https://www.bugcrowd.com/events/join-us-at-rsa-2019-march-4-8-2019-san-francisco/
-[url] https://www.bugcrowd.com/resources/4-reasons-to-swap-your-traditional-pen-test-with-a-next-gen-pen-test/
-[url] https://www.bugcrowd.com/blog/november-2019-hall-of-fame/
-[url] https://www.bugcrowd.com/blog/bugcrowd-launches-crowdstream-and-in-platform-coordinated-disclosure/
-[url] https://www.bugcrowd.com/blog/the-future-is-now-2020-cybersecurity-predictions/
-[url] https://www.bugcrowd.com/press-release/bugcrowd-launches-first-crowd-driven-approach-to-risk-based-asset-discovery-and-prioritization/
-[url] https://www.bugcrowd.com/press-release/bugcrowd-university-expands-education-and-training-for-whitehat-hackers/
-[url] https://www.bugcrowd.com/press-release/bugcrowd-announces-industrys-first-platform-enabled-cybersecurity-assessments-for-marketplaces/
-[url] https://www.bugcrowd.com/news/
-[url] https://www.bugcrowd.com/events/appsec-cali/
-[url] https://www.bugcrowd.com/events
-[url] https://www.bugcrowd.com/bugcrowd-security/
-[url] https://www.bugcrowd.com/terms-and-conditions/
-[url] https://www.bugcrowd.com/privacy/
-[javascript] https://www.bugcrowd.com/wp-content/uploads/autoptimize/js/autoptimize_single_de6b8fb8b3b0a0ac96d1476a6ef0d147.js
-[javascript] https://www.bugcrowd.com/wp-content/uploads/autoptimize/js/autoptimize_79a2bb0d9a869da52bd3e98a65b0cfb7.js
-
-```
