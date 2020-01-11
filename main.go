@@ -33,18 +33,18 @@ func banner(au aurora.Aurora) {
 func main() {
 	conf := config.NewConfig()
 	// define and parse command line flags
-	flag.StringVar(&conf.Domain, "domain", "", "The domain that you wish to crawl (for example, google.com)")
+	flag.StringVar(&conf.Url, "url", "", "The url that you wish to crawl, e.g. google.com or https://example.com. Schema defaults to http")
 	flag.IntVar(&conf.Depth, "depth", 1, "Maximum depth to crawl, the default is 1. Anything above 1 will include URLs from robots, sitemap, waybackurls and the initial crawler as a seed. Higher numbers take longer but yield more results.")
 	flag.StringVar(&conf.Outdir, "outdir", "", "Directory to save discovered raw HTTP requests")
 	flag.StringVar(&conf.Cookie, "cookie", "", "The value of this will be included as a Cookie header")
 	flag.StringVar(&conf.AuthHeader, "auth", "", "The value of this will be included as a Authorization header")
 	flag.StringVar(&conf.Scope, "scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nfuzzy = anything containing the supplied domain\nyolo = everything")
-	flag.StringVar(&conf.Schema, "schema", "http", "Schema, http or https")
 	flag.BoolVar(&conf.Wayback, "usewayback", false, "Query wayback machine for URLs and add them as seeds for the crawler")
 	flag.BoolVar(&conf.Plain, "plain", false, "Don't use colours or print the banners to allow for easier parsing")
 	flag.BoolVar(&conf.Runlinkfinder, "linkfinder", false, "Run linkfinder on javascript files.")
 
 	// which data to include in output?
+	flag.BoolVar(&conf.DisplayVersion, "v", false, "Display version and exit")
 	flag.BoolVar(&conf.IncludeJS, "js", false, "Include links to utilised JavaScript files")
 	flag.BoolVar(&conf.IncludeSubs, "subs", false, "Include subdomains in output")
 	flag.BoolVar(&conf.IncludeURLs, "urls", false, "Include URLs in output")
@@ -54,6 +54,12 @@ func main() {
 	flag.BoolVar(&conf.IncludeWayback, "wayback", false, "Include wayback machine entries in output")
 	flag.BoolVar(&conf.IncludeAll, "all", true, "Include everything in output - this is the default, so this option is superfluous")
 	flag.Parse()
+
+	// if -v is given, just display version number and exit
+	if conf.DisplayVersion {
+		fmt.Println(conf.Version)
+		os.Exit(1)
+	}
 
 	// set up the bools
 	if conf.IncludeJS || conf.IncludeSubs || conf.IncludeURLs || conf.IncludeForms || conf.IncludeRobots || conf.IncludeSitemap {
@@ -71,21 +77,20 @@ func main() {
 
 	c := collector.NewCollector(&conf, au, stdout)
 
-	domains := make(chan string, 1)
+	urls := make(chan string, 1)
 	var reqsMade []*http.Request
 	var crawlErr error
-	var domainwg sync.WaitGroup
+	var wg sync.WaitGroup
 
-	// either use conf.Domain or pull domains from stdin
-	if conf.Domain != "" {
-		domains <- conf.Domain
-		close(domains)
+	if conf.Url != "" {
+		urls <- conf.Url
+		close(urls)
 	} else {
 		ch := readStdin()
 		go func() {
 			//translate stdin channel to domains channel
-			for d := range ch {
-				domains <- d
+			for u := range ch {
+				urls <- u
 			}
 		}()
 	}
@@ -102,11 +107,15 @@ func main() {
 		}
 	}()
 
-	for d := range domains {
-		domainwg.Add(1)
-		go func(domain string) {
-			defer domainwg.Done()
-			reqsMade, crawlErr = c.Crawl(domain)
+	for u := range urls {
+		wg.Add(1)
+		go func(url string) {
+			defer wg.Done()
+			// url set but does not include schema
+			if !strings.Contains(url, "://") && url != "" {
+				url = "http://" + url
+			}
+			reqsMade, crawlErr = c.Crawl(url)
 
 			// Report errors and flush requests to files as we go
 			if crawlErr != nil {
@@ -119,10 +128,10 @@ func main() {
 				}
 			}
 
-		}(d)
+		}(u)
 	}
 
-	domainwg.Wait()
+	wg.Wait()
 
 	// just in case anything is still in buffer
 	stdout.Flush()
@@ -134,9 +143,9 @@ func readStdin() <-chan string {
 		defer close(lines)
 		sc := bufio.NewScanner(os.Stdin)
 		for sc.Scan() {
-			domain := strings.ToLower(sc.Text())
-			if domain != "" {
-				lines <- domain
+			url := strings.ToLower(sc.Text())
+			if url != "" {
+				lines <- url
 			}
 		}
 	}()

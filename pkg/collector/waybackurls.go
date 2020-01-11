@@ -194,8 +194,8 @@ func getVirusTotalURLs(domain string, noSubs bool) ([]wurl, error) {
 
 }
 
-func isSubdomain(rawUrl, domain string) bool {
-	u, err := url.Parse(rawUrl)
+func isSubdomain(rawURL, domain string) bool {
+	u, err := url.Parse(rawURL)
 	if err != nil {
 		// we can't parse the URL so just
 		// err on the side of including it in output

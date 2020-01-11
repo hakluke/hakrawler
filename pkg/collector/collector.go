@@ -65,16 +65,10 @@ func (s *syncList) AddReq(r *http.Request) {
 }
 
 // Crawl crawls a domain for urls, subdomains, jsfiles, and forms, printing output as it goes. Returns a list of http requests made
-func (c *Collector) Crawl(domain string) ([]*http.Request, error) {
-	// make sure the domain has been set
-	if domain == "" {
-		return []*http.Request{}, errors.New("domain was empty")
-	}
-
-	// set up the schema
-	schema := "http://"
-	if c.conf.Schema == "https" {
-		schema = "https://"
+func (c *Collector) Crawl(url string) ([]*http.Request, error) {
+	// make sure the url has been set
+	if url == "" {
+		return []*http.Request{}, errors.New("url was empty")
 	}
 
 	// these will store the discovered assets to avoid duplicates
@@ -85,13 +79,13 @@ func (c *Collector) Crawl(domain string) ([]*http.Request, error) {
 	reqsMade := &syncList{}
 
 	// find and visit the links
-	c.colly.OnHTML("a[href]", c.visitHTMLFunc(urls, subdomains, schema, domain, reqsMade))
+	c.colly.OnHTML("a[href]", c.visitHTMLFunc(urls, subdomains, url, reqsMade))
 
 	if c.conf.IncludeJS || c.conf.IncludeAll {
 		// find and print all the JavaScript files
-		c.colly.OnHTML("script[src]", c.findJSFunc(jsfiles, schema, domain, reqsMade))
+		c.colly.OnHTML("script[src]", c.findJSFunc(jsfiles, url, reqsMade))
 		// find and print all the form action URLs
-		c.colly.OnHTML("form[action]", c.findFormsFunc(forms, schema, domain, reqsMade))
+		c.colly.OnHTML("form[action]", c.findFormsFunc(forms, url, reqsMade))
 	}
 
 	// setup a waitgroup to run all methods at the same time
@@ -101,14 +95,14 @@ func (c *Collector) Crawl(domain string) ([]*http.Request, error) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.parseRobots(domain, schema, reqsMade)
+		c.parseRobots(url, reqsMade)
 	}()
 
 	// sitemap
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.parseSitemap(domain, schema, reqsMade)
+		c.parseSitemap(url, reqsMade)
 	}()
 
 	// waybackurls
@@ -116,7 +110,7 @@ func (c *Collector) Crawl(domain string) ([]*http.Request, error) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.visitWaybackURLs(domain, schema, subdomains, reqsMade)
+			c.visitWaybackURLs(url, subdomains, reqsMade)
 		}()
 	}
 
@@ -124,14 +118,14 @@ func (c *Collector) Crawl(domain string) ([]*http.Request, error) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.colly.Visit(schema + domain)
+		c.colly.Visit(url)
 	}()
 
 	wg.Wait()
 	return reqsMade.Reqs, nil
 }
 
-func (c *Collector) visitHTMLFunc(urls, subdomains map[string]struct{}, schema, domain string, reqsMade *syncList) func(e *colly.HTMLElement) {
+func (c *Collector) visitHTMLFunc(urls, subdomains map[string]struct{}, u string, reqsMade *syncList) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		var urlString string = e.Request.AbsoluteURL(e.Attr("href"))
 		// if the url isn't already there, print and save it, if it's a new subdomain, print that too
@@ -149,7 +143,7 @@ func (c *Collector) visitHTMLFunc(urls, subdomains map[string]struct{}, schema, 
 
 		e.Request.Visit(e.Attr("href"))
 		if c.conf.IncludeURLs || c.conf.IncludeAll {
-			c.recordIfInScope(c.au.BrightYellow("[url]"), schema, domain, urlString, reqsMade)
+			c.recordIfInScope(c.au.BrightYellow("[url]"), u, urlString, reqsMade)
 			urls[urlString] = struct{}{}
 		}
 
@@ -163,13 +157,13 @@ func (c *Collector) visitHTMLFunc(urls, subdomains map[string]struct{}, schema, 
 		}
 
 		if urlObj.Host != "" {
-			c.recordIfInScope(c.au.BrightGreen("[subdomain]"), schema, domain, urlObj.Host, reqsMade)
+			c.recordIfInScope(c.au.BrightGreen("[subdomain]"), u, urlObj.Host, reqsMade)
 			subdomains[urlObj.Host] = struct{}{}
 		}
 	}
 }
 
-func (c *Collector) findJSFunc(jsfiles map[string]struct{}, schema, domain string, reqsMade *syncList) func(e *colly.HTMLElement) {
+func (c *Collector) findJSFunc(jsfiles map[string]struct{}, u string, reqsMade *syncList) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		jsfile := e.Request.AbsoluteURL(e.Attr("src"))
 		if _, exists := jsfiles[jsfile]; exists {
@@ -178,7 +172,7 @@ func (c *Collector) findJSFunc(jsfiles map[string]struct{}, schema, domain strin
 		if jsfile == "" {
 			return
 		}
-		inScope := c.recordIfInScope(c.au.BrightRed("[javascript]"), schema, domain, jsfile, reqsMade)
+		inScope := c.recordIfInScope(c.au.BrightRed("[javascript]"), u, jsfile, reqsMade)
 		if inScope && c.conf.Runlinkfinder {
 			c.linkfinder(jsfile, c.au.BrightRed("[linkfinder]"), c.conf.Plain)
 		}
@@ -186,7 +180,7 @@ func (c *Collector) findJSFunc(jsfiles map[string]struct{}, schema, domain strin
 	}
 }
 
-func (c *Collector) findFormsFunc(forms map[string]struct{}, schema, domain string, reqsMade *syncList) func(e *colly.HTMLElement) {
+func (c *Collector) findFormsFunc(forms map[string]struct{}, u string, reqsMade *syncList) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		form := e.Request.AbsoluteURL(e.Attr("action"))
 		if _, exists := forms[form]; exists {
@@ -195,67 +189,67 @@ func (c *Collector) findFormsFunc(forms map[string]struct{}, schema, domain stri
 		if form == "" {
 			return
 		}
-		c.recordIfInScope(c.au.BrightCyan("[form]"), schema, domain, form, reqsMade)
+		c.recordIfInScope(c.au.BrightCyan("[form]"), u, form, reqsMade)
 		forms[form] = struct{}{}
 	}
 }
 
+func parseHostFromURL(u string) (string, error) {
+	parsed, err := url.Parse(u)
+	if err != nil {
+		return "", err
+	}
+
+	return parsed.Host, nil
+}
+
 // recordIfInScope determines whether the domains/urls should be printed based on the provided scope (returns true/false).
-func (c *Collector) recordIfInScope(tag aurora.Value, schema string, domain string, msg string, reqsMade *syncList) bool {
-	base, err := url.Parse(schema + domain)
+func (c *Collector) recordIfInScope(tag aurora.Value, u string, msg string, reqsMade *syncList) bool {
+	basehost, err := parseHostFromURL(u)
 	if err != nil {
 		// Error parsing base domain
 		return false
 	}
 
-	var msgSchema string
-
-	if !strings.Contains(msg, "http://") && !strings.Contains(msg, "https://") && !strings.HasPrefix(msg, "/") {
-		msgSchema = "https://"
-	} else {
-		msgSchema = ""
+	msgHost := msg
+	if strings.Contains(msg, "://") {
+		msgHost, err = parseHostFromURL(msg)
+		if err != nil {
+			return false
+		}
 	}
-
-	urlObj, err := url.Parse(msgSchema + msg)
-	if err != nil {
-		// the url can't be parsed, move on with reckless abandon
-		return false
-	}
-	urlObj = base.ResolveReference(urlObj)
 
 	var shouldPrint bool
 
 	switch c.conf.Scope {
 	case "strict":
-		shouldPrint = urlObj.Host == domain
+		shouldPrint = msgHost == basehost
 	case "fuzzy":
-		shouldPrint = strings.Contains(urlObj.Host, domain)
+		shouldPrint = strings.Contains(msgHost, basehost)
 	case "subs":
-		shouldPrint = strings.HasSuffix(urlObj.Host, domain)
+		shouldPrint = strings.HasSuffix(msgHost, basehost)
 	default:
 		shouldPrint = true
 	}
 
-	if shouldPrint {
-		strVal := urlObj.String()
-		// Remove the schema if it was added before
-		if msgSchema != "" {
-			strVal = strings.Replace(strVal, msgSchema, "", 1)
-		}
-		c.colorPrint(tag, strVal, c.conf.Plain)
-		reqsMade.AddReq(getReqFromURL(msg))
+	if !shouldPrint {
+		return false
 	}
+
+	c.colorPrint(tag, msg, c.conf.Plain)
+	reqsMade.AddReq(getReqFromURL(msg))
+
 	return shouldPrint
 }
 
-func (c *Collector) visitWaybackURLs(domain string, schema string, subdomains map[string]struct{}, reqsMade *syncList) {
+func (c *Collector) visitWaybackURLs(u string, subdomains map[string]struct{}, reqsMade *syncList) {
 	// get results from waybackurls
-	waybackurls := waybackURLs(domain)
+	waybackurls := waybackURLs(u)
 
 	// print wayback results, if depth >1, also add them to the crawl queue
 	for _, waybackurl := range waybackurls {
 		if c.conf.IncludeWayback || c.conf.IncludeAll {
-			c.recordIfInScope(c.au.Yellow("[wayback]"), schema, domain, waybackurl, reqsMade)
+			c.recordIfInScope(c.au.Yellow("[wayback]"), u, waybackurl, reqsMade)
 		}
 		// if this is a new subdomain, print it
 		urlObj, err := url.Parse(waybackurl)
@@ -267,8 +261,8 @@ func (c *Collector) visitWaybackURLs(domain string, schema string, subdomains ma
 				continue
 			}
 
-			if urlObj.Host != "" && strings.Contains(urlObj.Host, domain) {
-				c.recordIfInScope(c.au.BrightGreen("[subdomain]"), schema, domain, urlObj.Host, reqsMade)
+			if urlObj.Host != "" && strings.Contains(urlObj.Host, u) {
+				c.recordIfInScope(c.au.BrightGreen("[subdomain]"), u, urlObj.Host, reqsMade)
 				subdomains[urlObj.Host] = struct{}{}
 			}
 		}
@@ -280,9 +274,9 @@ func (c *Collector) visitWaybackURLs(domain string, schema string, subdomains ma
 
 var re = regexp.MustCompile(".*llow: ")
 
-func (c *Collector) parseRobots(domain string, schema string, reqsMade *syncList) {
+func (c *Collector) parseRobots(url string, reqsMade *syncList) {
 	var robotsurls []string
-	robotsURL := schema + domain + "/robots.txt"
+	robotsURL := url + "/robots.txt"
 
 	resp, err := http.Get(robotsURL)
 	if err != nil || resp.StatusCode != 200 {
@@ -299,10 +293,10 @@ func (c *Collector) parseRobots(domain string, schema string, reqsMade *syncList
 		if re.MatchString(line) {
 			urlstring := re.ReplaceAllString(line, "")
 			if c.conf.IncludeRobots || c.conf.IncludeAll {
-				_ = c.recordIfInScope(c.au.BrightMagenta("[robots]"), schema, domain, schema+domain+urlstring, reqsMade)
+				_ = c.recordIfInScope(c.au.BrightMagenta("[robots]"), url, url+urlstring, reqsMade)
 			}
 			//add it to a slice for parsing later
-			robotsurls = append(robotsurls, schema+domain+urlstring)
+			robotsurls = append(robotsurls, url+urlstring)
 		}
 	}
 
@@ -337,11 +331,11 @@ func (c *Collector) linkfinder(jsfile string, tag aurora.Value, plain bool) {
 
 }
 
-func (c *Collector) parseSitemap(domain string, schema string, reqsMade *syncList) {
-	sitemapURL := schema + domain + "/sitemap.xml"
+func (c *Collector) parseSitemap(url string, reqsMade *syncList) {
+	sitemapURL := url + "/sitemap.xml"
 	sitemap.ParseFromSite(sitemapURL, func(e sitemap.Entry) error {
 		if c.conf.IncludeSitemap || c.conf.IncludeAll {
-			_ = c.recordIfInScope(c.au.BrightBlue("[sitemap]"), schema, domain, e.GetLocation(), reqsMade)
+			_ = c.recordIfInScope(c.au.BrightBlue("[sitemap]"), url, e.GetLocation(), reqsMade)
 		}
 		// if depth is greater than 1, add sitemap url as seed
 		if c.conf.Depth > 1 {

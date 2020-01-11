@@ -2,17 +2,18 @@ package config
 
 // Config represents the configuration for both the Collector and cli.
 type Config struct {
-	Domain        string
+	Url           string
 	Depth         int
 	Outdir        string
 	Cookie        string
 	AuthHeader    string
 	Scope         string
-	Schema        string
+	Version       string
 	Wayback       bool
 	Plain         bool
 	Runlinkfinder bool
 	// output flags
+	DisplayVersion bool
 	IncludeJS      bool
 	IncludeSubs    bool
 	IncludeURLs    bool
@@ -27,13 +28,14 @@ type Config struct {
 func NewConfig() Config {
 	var conf Config
 	// default values
-	conf.Domain = ""
+	conf.Version = "beta 1" 
+	conf.DisplayVersion = false
+	conf.Url = ""
 	conf.Depth = 1
 	conf.Outdir = ""
 	conf.Cookie = ""
 	conf.AuthHeader = ""
 	conf.Scope = "subs"
-	conf.Schema = "http"
 	conf.Wayback = false
 	conf.Plain = false
 	conf.Runlinkfinder = false
