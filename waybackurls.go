@@ -1,7 +1,7 @@
 package main
 
 // this is a 99.9% copypasta from github.com/tomnomnom/waybackurls
-// thanks tom <3 
+// thanks tom <3
 
 import (
 	"bufio"
@@ -15,6 +15,7 @@ import (
 	"sync"
 )
 
+// WaybackURLs - fetch known URLs from the Wayback Machine for domain and return them
 func WaybackURLs(domain string) []string {
 	var waybackurls []string
 	noSubs := false
@@ -188,8 +189,8 @@ func getVirusTotalURLs(domain string, noSubs bool) ([]wurl, error) {
 
 }
 
-func isSubdomain(rawUrl, domain string) bool {
-	u, err := url.Parse(rawUrl)
+func isSubdomain(rawURL, domain string) bool {
+	u, err := url.Parse(rawURL)
 	if err != nil {
 		// we can't parse the URL so just
 		// err on the side of including it in output
