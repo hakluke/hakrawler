@@ -84,6 +84,9 @@ func (c *Collector) Crawl(url string) ([]*http.Request, error) {
 	if c.conf.IncludeJS || c.conf.IncludeAll {
 		// find and print all the JavaScript files
 		c.colly.OnHTML("script[src]", c.findJSFunc(jsfiles, url, reqsMade))
+	}
+
+	if c.conf.IncludeForms || c.conf.IncludeAll {
 		// find and print all the form action URLs
 		c.colly.OnHTML("form[action]", c.findFormsFunc(forms, url, reqsMade))
 	}
