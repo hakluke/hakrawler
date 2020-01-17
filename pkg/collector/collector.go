@@ -354,7 +354,8 @@ func (c *Collector) colorPrint(tag aurora.Value, msg string, plain bool) {
 		c.w.Write([]byte(fmt.Sprintln(msg)))
 	} else {
 		// append message to ansi code as bytes
-		bs := append([]byte(fmt.Sprint(tag)), []byte(fmt.Sprintln(msg))...)
+		bs := append([]byte(fmt.Sprint(tag)), " "...)
+		bs = append(bs, []byte(fmt.Sprintln(msg))...)
 		c.w.Write(bs)
 	}
 }
