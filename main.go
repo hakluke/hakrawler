@@ -92,6 +92,7 @@ func main() {
 			for u := range ch {
 				urls <- u
 			}
+			close(urls)
 		}()
 	}
 
