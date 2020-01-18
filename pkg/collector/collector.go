@@ -285,6 +285,7 @@ func (c *Collector) parseRobots(url string, reqsMade *syncList) {
 	if err != nil || resp.StatusCode != 200 {
 		return
 	}
+	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
