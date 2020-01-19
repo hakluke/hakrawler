@@ -335,7 +335,7 @@ func (c *Collector) linkfinder(jsfile string, tag aurora.Value, plain bool) {
 	resp.Body.Close()
 	found := linkFinderRegex.FindAllString(string(res), -1)
 	for _, link := range found {
-		c.colorPrint(tag, link, plain)
+		c.colorPrint(tag, link + " from " + jsfile, plain)
 	}
 
 }
