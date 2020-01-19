@@ -72,23 +72,28 @@ func (c *Collector) Crawl(url string) ([]*http.Request, error) {
 	}
 
 	// these will store the discovered assets to avoid duplicates
-	urls := make(map[string]struct{})
-	subdomains := make(map[string]struct{})
-	jsfiles := make(map[string]struct{})
-	forms := make(map[string]struct{})
+	var urls sync.Map
+	var subdomains sync.Map
+	var jsfiles sync.Map
+	var forms sync.Map
+
+	//urls := make(map[string]struct{})
+	//subdomains := make(map[string]struct{})
+	//jsfiles := make(map[string]struct{})
+	//forms := make(map[string]struct{})
 	reqsMade := &syncList{}
 
 	// find and visit the links
-	c.colly.OnHTML("a[href]", c.visitHTMLFunc(urls, subdomains, url, reqsMade))
+	c.colly.OnHTML("a[href]", c.visitHTMLFunc(&urls, &subdomains, url, reqsMade))
 
 	if c.conf.IncludeJS || c.conf.IncludeAll {
 		// find and print all the JavaScript files
-		c.colly.OnHTML("script[src]", c.findJSFunc(jsfiles, url, reqsMade))
+		c.colly.OnHTML("script[src]", c.findJSFunc(&jsfiles, url, reqsMade))
 	}
 
 	if c.conf.IncludeForms || c.conf.IncludeAll {
 		// find and print all the form action URLs
-		c.colly.OnHTML("form[action]", c.findFormsFunc(forms, url, reqsMade))
+		c.colly.OnHTML("form[action]", c.findFormsFunc(&forms, url, reqsMade))
 	}
 
 	// setup a waitgroup to run all methods at the same time
@@ -113,7 +118,7 @@ func (c *Collector) Crawl(url string) ([]*http.Request, error) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.visitWaybackURLs(url, subdomains, reqsMade)
+			c.visitWaybackURLs(url, &subdomains, reqsMade)
 		}()
 	}
 
@@ -128,11 +133,11 @@ func (c *Collector) Crawl(url string) ([]*http.Request, error) {
 	return reqsMade.Reqs, nil
 }
 
-func (c *Collector) visitHTMLFunc(urls, subdomains map[string]struct{}, u string, reqsMade *syncList) func(e *colly.HTMLElement) {
+func (c *Collector) visitHTMLFunc(urls *sync.Map, subdomains *sync.Map, u string, reqsMade *syncList) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		var urlString string = e.Request.AbsoluteURL(e.Attr("href"))
 		// if the url isn't already there, print and save it, if it's a new subdomain, print that too
-		if _, exists := urls[urlString]; exists {
+		if _, exists := urls.Load(urlString); exists {
 			return
 		}
 		if urlString == "" {
@@ -147,7 +152,7 @@ func (c *Collector) visitHTMLFunc(urls, subdomains map[string]struct{}, u string
 		e.Request.Visit(e.Attr("href"))
 		if c.conf.IncludeURLs || c.conf.IncludeAll {
 			c.recordIfInScope(c.au.BrightYellow("[url]"), u, urlString, reqsMade)
-			urls[urlString] = struct{}{}
+			urls.Store(urlString, struct{}{})
 		}
 
 		if !c.conf.IncludeSubs && !c.conf.IncludeAll {
@@ -155,21 +160,21 @@ func (c *Collector) visitHTMLFunc(urls, subdomains map[string]struct{}, u string
 		}
 
 		// if this is a new subdomain, print it
-		if _, exists := subdomains[urlObj.Host]; exists {
+		if _, exists := subdomains.Load(urlObj.Host); exists {
 			return
 		}
 
 		if urlObj.Host != "" {
 			c.recordIfInScope(c.au.BrightGreen("[subdomain]"), u, urlObj.Host, reqsMade)
-			subdomains[urlObj.Host] = struct{}{}
+			subdomains.Store(urlObj.Host, struct{}{})
 		}
 	}
 }
 
-func (c *Collector) findJSFunc(jsfiles map[string]struct{}, u string, reqsMade *syncList) func(e *colly.HTMLElement) {
+func (c *Collector) findJSFunc(jsfiles *sync.Map, u string, reqsMade *syncList) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		jsfile := e.Request.AbsoluteURL(e.Attr("src"))
-		if _, exists := jsfiles[jsfile]; exists {
+		if _, exists := jsfiles.Load(jsfile); exists {
 			return
 		}
 		if jsfile == "" {
@@ -179,21 +184,21 @@ func (c *Collector) findJSFunc(jsfiles map[string]struct{}, u string, reqsMade *
 		if inScope && c.conf.Runlinkfinder {
 			c.linkfinder(jsfile, c.au.BrightRed("[linkfinder]"), c.conf.Plain)
 		}
-		jsfiles[jsfile] = struct{}{}
+		jsfiles.Store(jsfile, struct{}{})
 	}
 }
 
-func (c *Collector) findFormsFunc(forms map[string]struct{}, u string, reqsMade *syncList) func(e *colly.HTMLElement) {
+func (c *Collector) findFormsFunc(forms *sync.Map, u string, reqsMade *syncList) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		form := e.Request.AbsoluteURL(e.Attr("action"))
-		if _, exists := forms[form]; exists {
+		if _, exists := forms.Load(form); exists {
 			return
 		}
 		if form == "" {
 			return
 		}
 		c.recordIfInScope(c.au.BrightCyan("[form]"), u, form, reqsMade)
-		forms[form] = struct{}{}
+		forms.Store(form, struct{}{})
 	}
 }
 
@@ -245,7 +250,7 @@ func (c *Collector) recordIfInScope(tag aurora.Value, u string, msg string, reqs
 	return shouldPrint
 }
 
-func (c *Collector) visitWaybackURLs(u string, subdomains map[string]struct{}, reqsMade *syncList) {
+func (c *Collector) visitWaybackURLs(u string, subdomains *sync.Map, reqsMade *syncList) {
 	// get results from waybackurls
 	waybackurls := waybackURLs(u)
 
@@ -260,13 +265,13 @@ func (c *Collector) visitWaybackURLs(u string, subdomains map[string]struct{}, r
 			continue
 		}
 		if c.conf.IncludeSubs || c.conf.IncludeAll {
-			if _, exists := subdomains[urlObj.Host]; exists {
+			if _, exists := subdomains.Load(urlObj.Host); exists {
 				continue
 			}
 
 			if urlObj.Host != "" && strings.Contains(urlObj.Host, u) {
 				c.recordIfInScope(c.au.BrightGreen("[subdomain]"), u, urlObj.Host, reqsMade)
-				subdomains[urlObj.Host] = struct{}{}
+				subdomains.Store(urlObj.Host, struct{}{})
 			}
 		}
 		if c.conf.Depth > 1 {
