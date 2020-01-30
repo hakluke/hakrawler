@@ -41,6 +41,7 @@ func main() {
 	flag.StringVar(&conf.Scope, "scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nfuzzy = anything containing the supplied domain\nyolo = everything")
 	flag.BoolVar(&conf.Wayback, "usewayback", false, "Query wayback machine for URLs and add them as seeds for the crawler")
 	flag.BoolVar(&conf.Plain, "plain", false, "Don't use colours or print the banners to allow for easier parsing")
+	flag.BoolVar(&conf.Nocolor, "nocolor", false, "Print the banners but without ANSI color codes")
 	flag.BoolVar(&conf.Runlinkfinder, "linkfinder", false, "Run linkfinder on javascript files.")
 
 	// which data to include in output?
@@ -69,7 +70,7 @@ func main() {
 	au := aurora.NewAurora(!conf.Plain)
 
 	// print the banner
-	if !conf.Plain {
+	if !conf.Plain && !conf.Nocolor {
 		banner(au)
 	}
 
