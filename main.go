@@ -123,7 +123,15 @@ func main() {
 				writeErrAndFlush(stdout, crawlErr.Error(), au)
 			}
 			if conf.Outdir != "" {
-				err := printRequestsToRandomFiles(reqsMade, conf.Outdir)
+				_, err := os.Stat(conf.Outdir)
+				if os.IsNotExist(err) {
+					errDir := os.MkdirAll(conf.Outdir, 0755)
+					if errDir != nil {
+						writeErrAndFlush(stdout, errDir.Error(), au)
+					}
+				}
+
+				err = printRequestsToRandomFiles(reqsMade, conf.Outdir)
 				if err != nil {
 					writeErrAndFlush(stdout, err.Error(), au)
 				}
