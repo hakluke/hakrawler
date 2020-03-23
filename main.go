@@ -75,7 +75,8 @@ func main() {
 
 	stdout := bufio.NewWriter(os.Stdout)
 
-	c := collector.NewCollector(&conf, au, stdout)
+
+	// c := collector.NewCollector(&conf, au, stdout)
 
 	urls := make(chan string, 1)
 	var reqsMade []*http.Request
@@ -112,6 +113,7 @@ func main() {
 		wg.Add(1)
 		go func(url string) {
 			defer wg.Done()
+			c := collector.NewCollector(&conf, au, stdout, url)
 			// url set but does not include schema
 			if !strings.Contains(url, "://") && url != "" {
 				url = "http://" + url
