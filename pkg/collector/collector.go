@@ -53,6 +53,7 @@ func NewCollector(config *config.Config, au aurora.Aurora, w io.Writer, url stri
 			}
 		})
 	}
+	config.Url = url
 	return &Collector{
 		conf:  config,
 		colly: c,
@@ -138,7 +139,11 @@ func (c *Collector) Crawl(url string) ([]*http.Request, error) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		inScope := c.isInScope(url, basehost)
+		msgHost, err := parseHostFromURL(url)
+		if err != nil {
+			return
+		}
+		inScope := c.isInScope(msgHost, basehost)
 		if inScope {
 			c.colly.Visit(url)
 		}
@@ -218,6 +223,10 @@ func (c *Collector) findFormsFunc(forms *sync.Map, u string, reqsMade *syncList)
 }
 
 func parseHostFromURL(u string) (string, error) {
+	if !strings.Contains(u, "://") && u != "" {
+		u = "http://" + u
+	}
+
 	parsed, err := url.Parse(u)
 	if err != nil {
 		return "", err
