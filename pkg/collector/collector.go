@@ -30,7 +30,6 @@ type Collector struct {
 // NewCollector returns an initialized Collector.
 func NewCollector(config *config.Config, au aurora.Aurora, w io.Writer, url string) *Collector {
 	c := colly.NewCollector(
-		colly.AllowedDomains(url),
 		colly.MaxDepth(config.Depth),
 		colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"),
 	)
@@ -46,6 +45,8 @@ func NewCollector(config *config.Config, au aurora.Aurora, w io.Writer, url stri
 			r.Headers.Set("Authorization", config.AuthHeader)
 		})
 	}
+
+	config.Url = url
 	return &Collector{
 		conf:  config,
 		colly: c,
@@ -71,7 +72,6 @@ func (c *Collector) Crawl(url string) ([]*http.Request, error) {
 	if url == "" {
 		return []*http.Request{}, errors.New("url was empty")
 	}
-
 	// these will store the discovered assets to avoid duplicates
 	var urls sync.Map
 	var subdomains sync.Map
@@ -123,11 +123,23 @@ func (c *Collector) Crawl(url string) ([]*http.Request, error) {
 		}()
 	}
 
+	basehost, err := parseHostFromURL(c.conf.Url)
+	if err != nil {
+		return reqsMade.Reqs, err
+	}
+
 	// colly
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.colly.Visit(url)
+		msgHost, err := parseHostFromURL(url)
+		if err != nil {
+			return
+		}
+		inScope := c.isInScope(msgHost, basehost)
+		if inScope {
+			c.colly.Visit(url)
+		}
 	}()
 
 	wg.Wait()
@@ -204,6 +216,10 @@ func (c *Collector) findFormsFunc(forms *sync.Map, u string, reqsMade *syncList)
 }
 
 func parseHostFromURL(u string) (string, error) {
+	if !strings.Contains(u, "://") && u != "" {
+		u = "http://" + u
+	}
+
 	parsed, err := url.Parse(u)
 	if err != nil {
 		return "", err
@@ -228,19 +244,7 @@ func (c *Collector) recordIfInScope(tag aurora.Value, u string, msg string, reqs
 		}
 	}
 
-	var shouldPrint bool
-
-	switch c.conf.Scope {
-	case "strict":
-		shouldPrint = msgHost == basehost
-	case "fuzzy":
-		shouldPrint = strings.Contains(msgHost, basehost)
-	case "subs":
-		shouldPrint = strings.HasSuffix(msgHost, basehost)
-	default:
-		shouldPrint = true
-	}
-
+	shouldPrint := c.isInScope(msgHost, basehost)
 	if !shouldPrint {
 		return false
 	}
@@ -378,4 +382,20 @@ func getReqFromURL(url string) *http.Request {
 		return nil
 	}
 	return req
+}
+
+// isInScope determines whether a URL is in scope based on the provided scope (returns true/false).
+func (c *Collector) isInScope(msgHost string, basehost string) bool {
+	var inScope bool
+	switch c.conf.Scope {
+	case "strict":
+		inScope = msgHost == basehost
+	case "fuzzy":
+		inScope = strings.Contains(msgHost, basehost)
+	case "subs":
+		inScope = strings.HasSuffix(msgHost, basehost)
+	default:
+		inScope = true
+	}
+	return inScope
 }
