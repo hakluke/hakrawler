@@ -145,7 +145,6 @@ func (c *Collector) Crawl(url string) ([]*http.Request, error) {
 	}()
 
 	wg.Wait()
-	fmt.Println(len(reqsMade.Reqs))
 	return reqsMade.Reqs, nil
 }
 
