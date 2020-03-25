@@ -111,14 +111,19 @@ func main() {
 
 	for u := range urls {
 		wg.Add(1)
-		go func(url string) {
+		go func(site string) {
 			defer wg.Done()
-			c := collector.NewCollector(&conf, au, stdout, url)
-			// url set but does not include schema
-			if !strings.Contains(url, "://") && url != "" {
-				url = "http://" + url
+			if !strings.Contains(site, "://") && site != "" {
+				site = "http://" + site
 			}
-			reqsMade, crawlErr = c.Crawl(url)
+			parsedUrl, err := url.Parse(site)
+			if err != nil {
+				writeErrAndFlush(stdout, err.Error(), au)
+				return
+			}
+			c := collector.NewCollector(&conf, au, stdout, parsedUrl.Host)
+			// url set but does not include schema
+			reqsMade, crawlErr = c.Crawl(site)
 
 			// Report errors and flush requests to files as we go
 			if crawlErr != nil {
