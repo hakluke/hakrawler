@@ -36,7 +36,7 @@ type Config struct {
 func NewConfig() Config {
 	var conf Config
 	// default values
-	conf.Version = "beta9"
+	conf.Version = "beta10"
 	conf.DisplayVersion = false
 	conf.Url = ""
 	conf.Depth = 1
