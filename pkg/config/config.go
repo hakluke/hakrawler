@@ -11,6 +11,7 @@ type Config struct {
 	Version       string
 	Wayback       bool
 	Plain         bool
+	Nocolor			bool
 	Runlinkfinder bool
 	// output flags
 	DisplayVersion bool
@@ -38,6 +39,7 @@ func NewConfig() Config {
 	conf.Scope = "subs"
 	conf.Wayback = false
 	conf.Plain = false
+	conf.Nocolor = false
 	conf.Runlinkfinder = false
 	// output flag default values
 	conf.IncludeJS = false

@@ -336,7 +336,7 @@ func (c *Collector) linkfinder(jsfile string, tag aurora.Value, plain bool) {
 	resp.Body.Close()
 	found := linkFinderRegex.FindAllString(string(res), -1)
 	for _, link := range found {
-		c.colorPrint(tag, link + " from " + jsfile, plain)
+		c.colorPrint(tag, link+" from "+jsfile, plain)
 	}
 
 }
@@ -359,6 +359,10 @@ func (c *Collector) parseSitemap(url string, reqsMade *syncList) {
 func (c *Collector) colorPrint(tag aurora.Value, msg string, plain bool) {
 	if plain {
 		c.w.Write([]byte(fmt.Sprintln(msg)))
+	} else if c.conf.Nocolor {
+		bs := append([]byte(stripColor(fmt.Sprint(tag))), " "...)
+		bs = append(bs, []byte(fmt.Sprintln(msg))...)
+		c.w.Write(bs)
 	} else {
 		// append message to ansi code as bytes
 		bs := append([]byte(fmt.Sprint(tag)), " "...)
@@ -378,4 +382,11 @@ func getReqFromURL(url string) *http.Request {
 		return nil
 	}
 	return req
+}
+
+// Remove ANSI escape code from string
+func stripColor(str string) string {
+	ansi := "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+	re := regexp.MustCompile(ansi)
+	return re.ReplaceAllString(str, "")
 }
