@@ -46,6 +46,14 @@ func NewCollector(config *config.Config, au aurora.Aurora, w io.Writer, url stri
 			r.Headers.Set("Authorization", config.AuthHeader)
 		})
 	}
+
+	if config.HeadersMap != nil {
+		c.OnRequest(func(r *colly.Request) {
+			for header, value := range config.HeadersMap {
+				r.Headers.Set(header, value)
+			}
+		})
+	}
 	return &Collector{
 		conf:  config,
 		colly: c,

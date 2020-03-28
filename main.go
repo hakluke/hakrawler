@@ -38,6 +38,7 @@ func main() {
 	flag.StringVar(&conf.Outdir, "outdir", "", "Directory to save discovered raw HTTP requests")
 	flag.StringVar(&conf.Cookie, "cookie", "", "The value of this will be included as a Cookie header")
 	flag.StringVar(&conf.AuthHeader, "auth", "", "The value of this will be included as a Authorization header")
+	flag.StringVar(&conf.Headers, "headers", "", "Headers to add in all requests. Multiple should be separated by semi-colon, e.g. HeaderOne: ValueOne;HeaderTwo: ValueTwo")
 	flag.StringVar(&conf.Scope, "scope", "subs", "Scope to include:\nstrict = specified domain only\nsubs = specified domain and subdomains\nfuzzy = anything containing the supplied domain\nyolo = everything")
 	flag.BoolVar(&conf.Wayback, "usewayback", false, "Query wayback machine for URLs and add them as seeds for the crawler")
 	flag.BoolVar(&conf.Plain, "plain", false, "Don't use colours or print the banners to allow for easier parsing")
@@ -55,6 +56,14 @@ func main() {
 	flag.BoolVar(&conf.IncludeWayback, "wayback", false, "Include wayback machine entries in output")
 	flag.BoolVar(&conf.IncludeAll, "all", true, "Include everything in output - this is the default, so this option is superfluous")
 	flag.Parse()
+
+	// Verify flags
+	err := config.VerifyFlags(&conf)
+	if err != nil {
+		fmt.Println(err)
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	// if -v is given, just display version number and exit
 	if conf.DisplayVersion {
