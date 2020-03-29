@@ -41,6 +41,8 @@ assetfinder target.com | hakrawler | some-xss-scanner
 - [Corben Leo](https://github.com/lc) added in functionality to pull links from JavaScript files
 - [delic](https://github.com/delic) made the code much cleaner
 - [hoenn](https://github.com/hoenn) made the code even cleanerer
+- [ameenmaali](https://twitter.com/ameenmaali) made a bunch of code improvements and bug fixes
+- [daehee](https://github.com/daehee) added the -nocolor flag
 
 ## Thanks
 
