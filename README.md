@@ -92,7 +92,6 @@ Usage of hakrawler:
     	Scope to include:
     	strict = specified domain only
     	subs = specified domain and subdomains
-    	fuzzy = anything containing the supplied domain
     	yolo = everything (default "subs")
   -sitemap
     	Include sitemap.xml entries in output
