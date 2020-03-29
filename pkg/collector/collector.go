@@ -37,14 +37,12 @@ func NewCollector(config *config.Config, au aurora.Aurora, w io.Writer, url stri
 
         switch config.Scope {
         case "strict":
-            fmt.Print("STRIIIIICT")
             c = colly.NewCollector(
                     colly.AllowedDomains(basehost),
                     colly.MaxDepth(config.Depth),
                     colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"),
             )
         case "subs":
-            fmt.Print("SUUUUBS")
             c = colly.NewCollector(
                     colly.MaxDepth(config.Depth),
                     colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"),
@@ -53,7 +51,6 @@ func NewCollector(config *config.Config, au aurora.Aurora, w io.Writer, url stri
                     ),
             )
         default:
-            fmt.Print("DEEEEEEFAULT")
             c = colly.NewCollector(
                     colly.MaxDepth(config.Depth),
                     colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"),
@@ -118,10 +115,6 @@ func (c *Collector) Crawl(url string) ([]*http.Request, error) {
         var jsfiles sync.Map
         var forms sync.Map
 
-        //urls := make(map[string]struct{})
-        //subdomains := make(map[string]struct{})
-        //jsfiles := make(map[string]struct{})
-        //forms := make(map[string]struct{})
         reqsMade := &syncList{}
 
         // find and visit the links
