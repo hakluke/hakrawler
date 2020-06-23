@@ -56,6 +56,7 @@ func main() {
 	flag.BoolVar(&conf.IncludeSitemap, "sitemap", false, "Include sitemap.xml entries in output")
 	flag.BoolVar(&conf.IncludeWayback, "wayback", false, "Include wayback machine entries in output")
 	flag.BoolVar(&conf.IncludeAll, "all", true, "Include everything in output - this is the default, so this option is superfluous")
+    flag.BoolVar(&conf.Insecure, "insecure", false, "Ignore invalid HTTPS certificates")
 	flag.Parse()
 
 	// Verify flags
