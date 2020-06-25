@@ -43,6 +43,7 @@ assetfinder target.com | hakrawler | some-xss-scanner
 - [hoenn](https://github.com/hoenn) made the code even cleanerer
 - [ameenmaali](https://twitter.com/ameenmaali) made a bunch of code improvements and bug fixes
 - [daehee](https://github.com/daehee) added the -nocolor flag
+- [robre](https://twitter.com/r0bre) added the -insecure flag
 
 ## Thanks
 
@@ -108,6 +109,8 @@ Usage of hakrawler:
   -v	Display version and exit
   -wayback
     	Include wayback machine entries in output
+  -insecure
+      Ignore SSL verification
 ```
 
 ## Basic Example
