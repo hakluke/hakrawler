@@ -57,7 +57,12 @@ func NewCollector(config *config.Config, au aurora.Aurora, w io.Writer, url stri
             )
         }
         
-
+       // added to ignore tls verification
+        if config.Insecure {
+                c.WithTransport(&http.Transport{
+                    TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+                })
+        }
         // Print "Visiting <url>" for each request made
         //c.OnRequest(func(r *colly.Request) {
         //        fmt.Println("Visiting", r.URL.String())
