@@ -67,7 +67,7 @@ go get github.com/hakluke/hakrawler
 Note that if you need to do this, you probably want to add your Go bin directory to your $PATH to make things easier!
 
 ## Usage
-Note: multiple domains can be crawled by piping them into hakrawler from stdin. If only a single domain is being crawled, it can be added by using the -domain flag.
+Note: multiple domains can be crawled by piping them into hakrawler from stdin. If only a single domain is being crawled, it can be added by using the -url flag.
 ```
 $ hakrawler -h
 Usage of hakrawler:
@@ -94,6 +94,7 @@ Usage of hakrawler:
   -scope string
     	Scope to include:
     	strict = specified domain only
+      www  = specified domain and "www" subdomain
     	subs = specified domain and subdomains
     	yolo = everything (default "subs")
   -sitemap
