@@ -94,7 +94,7 @@ Usage of hakrawler:
   -scope string
     	Scope to include:
     	strict = specified domain only
-      www  = specified domain and "www" subdomain
+    	www  = specified domain and "www" subdomain
     	subs = specified domain and subdomains
     	yolo = everything (default "subs")
   -sitemap
