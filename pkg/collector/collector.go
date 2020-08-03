@@ -36,6 +36,12 @@ func NewCollector(config *config.Config, au aurora.Aurora, w io.Writer, url stri
         c := colly.NewCollector()
 
         switch config.Scope {
+        case "www":
+                c = colly.NewCollector(
+                        colly.AllowedDomains(basehost, "www." + basehost),
+                        colly.MaxDepth(config.Depth),
+                        colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"),
+                )
         case "strict":
             c = colly.NewCollector(
                     colly.AllowedDomains(basehost),
@@ -270,6 +276,8 @@ func (c *Collector) recordIfInScope(tag aurora.Value, u string, msg string, reqs
         var shouldPrint bool
 
         switch c.conf.Scope {
+        case "www":
+                shouldPrint = msgHost == basehost || msgHost == "www." + basehost
         case "strict":
                 shouldPrint = msgHost == basehost
         case "subs":
