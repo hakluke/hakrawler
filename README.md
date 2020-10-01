@@ -19,6 +19,11 @@ The goal is to create the tool in a way that it can be easily chained with other
 ```
 assetfinder target.com | hakrawler | some-xss-scanner
 ```
+## Installation
+
+```
+go get -u github.com/hakluke/hakrawler
+```
 
 ## Features
 
