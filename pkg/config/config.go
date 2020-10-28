@@ -16,9 +16,10 @@ type Config struct {
 	HeadersMap    map[string]string
 	Scope         string
 	Version       string
+	Proxy         []string
 	Wayback       bool
 	Plain         bool
-	Nocolor			bool
+	Nocolor       bool
 	Runlinkfinder bool
 	// output flags
 	DisplayVersion bool
@@ -30,7 +31,7 @@ type Config struct {
 	IncludeSitemap bool
 	IncludeWayback bool
 	IncludeAll     bool
-    Insecure       bool
+	Insecure       bool
 }
 
 // NewConfig returns a Config with default values.
@@ -60,7 +61,7 @@ func NewConfig() Config {
 	conf.IncludeSitemap = false
 	conf.IncludeWayback = false
 	conf.IncludeAll = true
-    conf.Insecure = false
+	conf.Insecure = false
 
 	return conf
 }

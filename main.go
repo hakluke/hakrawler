@@ -37,10 +37,12 @@ func banner(au aurora.Aurora) {
 func main() {
 	conf := config.NewConfig()
 	// define and parse command line flags
+	proxyList := ""
 	commandLine := flag.NewFlagSet("", flag.ExitOnError)
 	commandLine.StringVar(&conf.Url, "url", "", "The url that you wish to crawl, e.g. google.com or https://example.com. Schema defaults to http")
 	commandLine.IntVar(&conf.Depth, "depth", 1, "Maximum depth to crawl, the default is 1. Anything above 1 will include URLs from robots, sitemap, waybackurls and the initial crawler as a seed. Higher numbers take longer but yield more results.")
 	commandLine.StringVar(&conf.Outdir, "outdir", "", "Directory to save discovered raw HTTP requests")
+	commandLine.StringVar(&proxyList, "proxy", "", "Send requests using this proxy list. Multiple should be separated by semi-colon, e.g. HeaderOne: ProxyOne:PortOne;ProxyTwo:PortTwo")
 	commandLine.StringVar(&conf.Cookie, "cookie", "", "The value of this will be included as a Cookie header")
 	commandLine.StringVar(&conf.AuthHeader, "auth", "", "The value of this will be included as a Authorization header")
 	commandLine.StringVar(&conf.Headers, "headers", "", "Headers to add in all requests. Multiple should be separated by semi-colon, e.g. HeaderOne: ValueOne;HeaderTwo: ValueTwo")
@@ -62,7 +64,12 @@ func main() {
 	commandLine.BoolVar(&conf.IncludeAll, "all", true, "Include everything in output - this is the default, so this option is superfluous")
 	commandLine.BoolVar(&conf.Insecure, "insecure", false, "Ignore invalid HTTPS certificates")
 	commandLine.Parse(os.Args[1:])
-
+	if proxyList != "" {
+		listSeperator := ";"
+		for _, proxy := range strings.Split(proxyList, listSeperator) {
+			conf.Proxy = append(conf.Proxy, fmt.Sprintf("socks5://%s", proxy))
+		}
+	}
 	// Verify flags
 	err := config.VerifyFlags(&conf)
 	if err != nil {
