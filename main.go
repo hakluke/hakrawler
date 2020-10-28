@@ -64,12 +64,14 @@ func main() {
 	commandLine.BoolVar(&conf.IncludeAll, "all", true, "Include everything in output - this is the default, so this option is superfluous")
 	commandLine.BoolVar(&conf.Insecure, "insecure", false, "Ignore invalid HTTPS certificates")
 	commandLine.Parse(os.Args[1:])
+
 	if proxyList != "" {
-		listSeperator := ";"
-		for _, proxy := range strings.Split(proxyList, listSeperator) {
+		listSeparator := ";"
+		for _, proxy := range strings.Split(proxyList, listSeparator) {
 			conf.Proxy = append(conf.Proxy, fmt.Sprintf("socks5://%s", proxy))
 		}
 	}
+
 	// Verify flags
 	err := config.VerifyFlags(&conf)
 	if err != nil {
