@@ -40,6 +40,7 @@ func main() {
 	commandLine := flag.NewFlagSet("", flag.ExitOnError)
 	commandLine.StringVar(&conf.Url, "url", "", "The url that you wish to crawl, e.g. google.com or https://example.com. Schema defaults to http")
 	commandLine.IntVar(&conf.Depth, "depth", 1, "Maximum depth to crawl, the default is 1. Anything above 1 will include URLs from robots, sitemap, waybackurls and the initial crawler as a seed. Higher numbers take longer but yield more results.")
+	commandLine.StringVar(&conf.Proxy, "proxy", "", "The address of proxy server used in crawl, e.g. http://127.0.0.1.8080.")
 	commandLine.StringVar(&conf.Outdir, "outdir", "", "Directory to save discovered raw HTTP requests")
 	commandLine.StringVar(&conf.Cookie, "cookie", "", "The value of this will be included as a Cookie header")
 	commandLine.StringVar(&conf.AuthHeader, "auth", "", "The value of this will be included as a Authorization header")

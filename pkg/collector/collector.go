@@ -13,6 +13,7 @@ import (
         "sync"
 
         "github.com/gocolly/colly"
+        "github.com/gocolly/colly/proxy"
         "github.com/hakluke/hakrawler/pkg/config"
         sitemap "github.com/oxffaa/gopher-parse-sitemap"
 
@@ -63,6 +64,15 @@ func NewCollector(config *config.Config, au aurora.Aurora, w io.Writer, url stri
             )
         }
         
+        if config.Proxy != "" {
+                rp, err := proxy.RoundRobinProxySwitcher(config.Proxy)
+                if err != nil {
+                        errors.New("Invalid proxy address.")
+                        return nil
+                }
+                c.SetProxyFunc(rp)
+        }
+
        // added to ignore tls verification
         if config.Insecure {
                 c.WithTransport(&http.Transport{

@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Url           string
 	Depth         int
+	Proxy         string
 	Outdir        string
 	Cookie        string
 	AuthHeader    string
@@ -41,6 +42,7 @@ func NewConfig() Config {
 	conf.DisplayVersion = false
 	conf.Url = ""
 	conf.Depth = 1
+	conf.Proxy = ""
 	conf.Outdir = ""
 	conf.Cookie = ""
 	conf.AuthHeader = ""
