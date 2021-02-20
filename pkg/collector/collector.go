@@ -346,7 +346,7 @@ func (c *Collector) parseRobots(url string, reqsMade *syncList) {
 
         for _, line := range lines {
                 if re.MatchString(line) {
-                        urlstring := re.ReplaceAllString(line, "")
+                        urlstring := strings.TrimLeft(re.ReplaceAllString(line, ""), " ")
                         if c.conf.IncludeRobots || c.conf.IncludeAll {
                                 _ = c.recordIfInScope(c.au.BrightMagenta("[robots]"), url, url+urlstring, reqsMade)
                         }
