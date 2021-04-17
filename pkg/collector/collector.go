@@ -273,7 +273,7 @@ func (c *Collector) findBucketsFunc(body []byte, buckets *sync.Map) {
 		if link == "" {
 			continue
 		}
-		c.recordWithoutChecks(c.au.BrightMagenta("[s3]"), link)
+		c.recordWithoutChecks(c.au.BrightBlack("[s3]"), link)
 		buckets.Store(link, struct{}{})
 	}
 }
