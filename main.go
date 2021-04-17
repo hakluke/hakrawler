@@ -59,6 +59,7 @@ func main() {
 	commandLine.BoolVar(&conf.IncludeRobots, "robots", false, "Include robots.txt entries in output")
 	commandLine.BoolVar(&conf.IncludeSitemap, "sitemap", false, "Include sitemap.xml entries in output")
 	commandLine.BoolVar(&conf.IncludeWayback, "wayback", false, "Include wayback machine entries in output")
+	commandLine.BoolVar(&conf.IncludeBuckets, "buckets", false, "Include AWS buckets in output")
 	commandLine.BoolVar(&conf.IncludeAll, "all", true, "Include everything in output - this is the default, so this option is superfluous")
 	commandLine.BoolVar(&conf.Insecure, "insecure", false, "Ignore invalid HTTPS certificates")
 	commandLine.Parse(os.Args[1:])
@@ -78,7 +79,7 @@ func main() {
 	}
 
 	// set up the bools
-	if conf.IncludeJS || conf.IncludeSubs || conf.IncludeURLs || conf.IncludeForms || conf.IncludeRobots || conf.IncludeSitemap {
+	if conf.IncludeJS || conf.IncludeSubs || conf.IncludeURLs || conf.IncludeForms || conf.IncludeRobots || conf.IncludeSitemap || conf.IncludeBuckets {
 		conf.IncludeAll = false
 	}
 

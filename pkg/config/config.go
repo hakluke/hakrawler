@@ -18,7 +18,7 @@ type Config struct {
 	Version       string
 	Wayback       bool
 	Plain         bool
-	Nocolor			bool
+	Nocolor       bool
 	Runlinkfinder bool
 	// output flags
 	DisplayVersion bool
@@ -29,8 +29,9 @@ type Config struct {
 	IncludeRobots  bool
 	IncludeSitemap bool
 	IncludeWayback bool
+	IncludeBuckets bool
 	IncludeAll     bool
-    Insecure       bool
+	Insecure       bool
 }
 
 // NewConfig returns a Config with default values.
@@ -59,8 +60,9 @@ func NewConfig() Config {
 	conf.IncludeRobots = false
 	conf.IncludeSitemap = false
 	conf.IncludeWayback = false
+	conf.IncludeBuckets = false
 	conf.IncludeAll = true
-    conf.Insecure = false
+	conf.Insecure = false
 
 	return conf
 }
