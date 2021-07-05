@@ -17,6 +17,13 @@ func main() {
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
 	flag.Parse()
 
+	// Check for stdin input
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) != 0 {
+		println("No urls detected. Hint: cat urls.txt | hakrawler")
+		os.Exit(1)
+	}
+
 	// get each line of stdin, push it to the work channel
 	s := bufio.NewScanner(os.Stdin)
 	for s.Scan() {
