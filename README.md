@@ -18,7 +18,7 @@ echo google.com | haktrails subdomains | httpx | hakrawler
 
 ## Usage gif
 
-[Example usage gif](hakrawler-example.gif)
+![Example usage gif](hakrawler-example.gif)
 
 ## Command-line options
 ```
