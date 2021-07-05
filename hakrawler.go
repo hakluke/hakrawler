@@ -29,6 +29,9 @@ func main() {
 	for s.Scan() {
 		crawl(s.Text(), *threads, *depth, *insecure)
 	}
+	if err := s.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	}
 }
 
 func crawl(url string, threads int, depth int, insecure bool) {
