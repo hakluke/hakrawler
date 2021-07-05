@@ -12,8 +12,8 @@ import (
 )
 
 func main() {
-	threads := flag.Int("t", 8, "Number of threads to utilise. Default is 8.")
-	depth := flag.Int("d", 2, "Depth to crawl. Default is 2.")
+	threads := flag.Int("t", 8, "Number of threads to utilise.")
+	depth := flag.Int("d", 2, "Depth to crawl.")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
 	flag.Parse()
 
