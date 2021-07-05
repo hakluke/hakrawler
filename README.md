@@ -20,6 +20,17 @@ echo google.com | haktrails subdomains | httpx | hakrawler
 
 ![Example usage gif](hakrawler-example.gif)
 
+## Installation
+
+First, you'll need to [install go](https://golang.org/doc/install).
+
+Then run this command to download + compile hakrawler:
+```
+go get github.com/hakluke/hakrawler
+```
+
+You can now run `~/go/bin/hakrawler`. If you'd like to just run `hakrawler` without the full path, you'll need to `export PATH="/go/bin/:$PATH"`. You can also add this line to your `~/.bashrc` file if you'd like this to persist.
+
 ## Command-line options
 ```
   -d int
