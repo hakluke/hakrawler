@@ -42,7 +42,7 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 	c := colly.NewCollector(
 		// MaxDepth is 2, so only the links on the scraped page
 		// and links on those pages are visited
-		colly.MaxDepth(2),
+		colly.MaxDepth(depth),
 		colly.Async(true),
 	)
 
