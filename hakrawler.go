@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -20,18 +21,23 @@ func main() {
 	// Check for stdin input
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) != 0 {
-		println("No urls detected. Hint: cat urls.txt | hakrawler")
+		fmt.Fprintln(os.Stderr, "No urls detected. Hint: cat urls.txt | hakrawler")
 		os.Exit(1)
 	}
 
 	// get each line of stdin, push it to the work channel
 	s := bufio.NewScanner(os.Stdin)
+	w := bufio.NewWriter(os.Stdout)
+	defer w.Flush()
 	for s.Scan() {
-		crawl(s.Text(), *threads, *depth, *insecure)
+		crawl(w, s.Text(), *threads, *depth, *insecure)
+	}
+	if err := s.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
 	}
 }
 
-func crawl(url string, threads int, depth int, insecure bool) {
+func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 	// Instantiate default collector
 	c := colly.NewCollector(
 		// MaxDepth is 2, so only the links on the scraped page
@@ -50,7 +56,7 @@ func crawl(url string, threads int, depth int, insecure bool) {
 		absoluteURL := e.Request.AbsoluteURL(link)
 
 		if absoluteURL != "" {
-			fmt.Printf("[href] %s\n", e.Request.AbsoluteURL(link))
+			fmt.Fprintf(w, "[href] %s\n", e.Request.AbsoluteURL(link))
 			// Visit link found on page on a new thread
 			e.Request.Visit(link)
 		}
@@ -61,7 +67,7 @@ func crawl(url string, threads int, depth int, insecure bool) {
 		link := e.Attr("src")
 		absoluteURL := e.Request.AbsoluteURL(link)
 		if absoluteURL != "" {
-			fmt.Printf("[script] %s\n", e.Request.AbsoluteURL(link))
+			fmt.Fprintf(w, "[script] %s\n", e.Request.AbsoluteURL(link))
 		}
 	})
 
@@ -70,7 +76,7 @@ func crawl(url string, threads int, depth int, insecure bool) {
 		link := e.Attr("action")
 		absoluteURL := e.Request.AbsoluteURL(link)
 		if absoluteURL != "" {
-			fmt.Printf("[form] %s\n", e.Request.AbsoluteURL(link))
+			fmt.Fprintf(w, "[form] %s\n", e.Request.AbsoluteURL(link))
 		}
 	})
 
