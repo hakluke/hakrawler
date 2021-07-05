@@ -111,7 +111,7 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 	c.Wait()
 }
 
-// parseHeaders does validation and any manipulation that needs to happen from flags.
+// parseHeaders does validation of headers input and saves it to a formatted map.
 func parseHeaders(rawHeaders string) error {
 	if rawHeaders != "" {
 		if !strings.Contains(rawHeaders, ":") {
