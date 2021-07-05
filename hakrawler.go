@@ -3,20 +3,32 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gocolly/colly"
 )
+
+var headers map[string]string
 
 func main() {
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
 	depth := flag.Int("d", 2, "Depth to crawl.")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
+	rawHeaders := flag.String(("h"), "", "Custom headers separated by semi-colon. E.g. -h \"Cookie: foo=bar\" ")
 	flag.Parse()
+
+	// Convert the headers input to a usable map (or die trying)
+	err := parseHeaders(*rawHeaders)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error parsing headers:", err)
+		os.Exit(1)
+	}
 
 	// Check for stdin input
 	stat, _ := os.Stdin.Stat()
@@ -40,8 +52,7 @@ func main() {
 func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 	// Instantiate default collector
 	c := colly.NewCollector(
-		// MaxDepth is 2, so only the links on the scraped page
-		// and links on those pages are visited
+		// set MaxDepth to the specified depth, and specify Async for threading
 		colly.MaxDepth(depth),
 		colly.Async(true),
 	)
@@ -80,6 +91,15 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 		}
 	})
 
+	// add the custom headers
+	if headers != nil {
+		c.OnRequest(func(r *colly.Request) {
+			for header, value := range headers {
+				r.Headers.Set(header, value)
+			}
+		})
+	}
+
 	// Skip TLS verification if -insecure flag is present
 	c.WithTransport(&http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
@@ -89,4 +109,28 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 	c.Visit(url)
 	// Wait until threads are finished
 	c.Wait()
+}
+
+// parseHeaders does validation and any manipulation that needs to happen from flags.
+func parseHeaders(rawHeaders string) error {
+	if rawHeaders != "" {
+		if !strings.Contains(rawHeaders, ":") {
+			return errors.New("headers flag not formatted properly (no colon to separate header and value)")
+		}
+
+		headers = make(map[string]string)
+		rawHeaders := strings.Split(rawHeaders, ";")
+		for _, header := range rawHeaders {
+			var parts []string
+			if strings.Contains(header, ": ") {
+				parts = strings.Split(header, ": ")
+			} else if strings.Contains(header, ":") {
+				parts = strings.Split(header, ":")
+			} else {
+				continue
+			}
+			headers[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+		}
+	}
+	return nil
 }

@@ -35,6 +35,8 @@ You can now run `~/go/bin/hakrawler`. If you'd like to just run `hakrawler` with
 ```
   -d int
     	Depth to crawl. (default 2)
+  -h string
+    	Custom headers separated by semi-colon. E.g. -h "Cookie: foo=bar;Authorization: token"
   -insecure
     	Disable TLS verification.
   -t int
