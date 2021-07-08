@@ -21,6 +21,7 @@ func main() {
 	depth := flag.Int("d", 2, "Depth to crawl.")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by semi-colon. E.g. -h \"Cookie: foo=bar\" ")
+	rawOutput := flag.Bool("r", false, "Raw output without URL type prefix.")
 	flag.Parse()
 
 	// Convert the headers input to a usable map (or die trying)
@@ -42,14 +43,14 @@ func main() {
 	w := bufio.NewWriter(os.Stdout)
 	defer w.Flush()
 	for s.Scan() {
-		crawl(w, s.Text(), *threads, *depth, *insecure)
+		crawl(w, s.Text(), *threads, *depth, *insecure, *rawOutput)
 	}
 	if err := s.Err(); err != nil {
 		fmt.Fprintln(os.Stderr, "reading standard input:", err)
 	}
 }
 
-func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
+func crawl(w io.Writer, url string, threads int, depth int, insecure bool, rawOutput bool) {
 	// Instantiate default collector
 	c := colly.NewCollector(
 		// set MaxDepth to the specified depth, and specify Async for threading
@@ -67,7 +68,7 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 		absoluteURL := e.Request.AbsoluteURL(link)
 
 		if absoluteURL != "" {
-			fmt.Fprintf(w, "[href] %s\n", e.Request.AbsoluteURL(link))
+			fmt.Fprintln(w, buildOutput("[href]", e.Request.AbsoluteURL(link), !rawOutput))
 			// Visit link found on page on a new thread
 			e.Request.Visit(link)
 		}
@@ -78,7 +79,7 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 		link := e.Attr("src")
 		absoluteURL := e.Request.AbsoluteURL(link)
 		if absoluteURL != "" {
-			fmt.Fprintf(w, "[script] %s\n", e.Request.AbsoluteURL(link))
+			fmt.Fprintln(w, buildOutput("[script]", e.Request.AbsoluteURL(link), !rawOutput))
 		}
 	})
 
@@ -87,7 +88,7 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 		link := e.Attr("action")
 		absoluteURL := e.Request.AbsoluteURL(link)
 		if absoluteURL != "" {
-			fmt.Fprintf(w, "[form] %s\n", e.Request.AbsoluteURL(link))
+			fmt.Fprintln(w, buildOutput("[form]", e.Request.AbsoluteURL(link), !rawOutput))
 		}
 	})
 
@@ -133,4 +134,16 @@ func parseHeaders(rawHeaders string) error {
 		}
 	}
 	return nil
+}
+
+func buildOutput(urlType string, url string, printType bool) string {
+	builder := strings.Builder{}
+	if printType {
+		builder.WriteString(urlType)
+		builder.WriteString(" ")
+	}
+
+	builder.WriteString(url)
+
+	return builder.String()
 }
