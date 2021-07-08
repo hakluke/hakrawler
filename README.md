@@ -39,6 +39,8 @@ You can now run `~/go/bin/hakrawler`. If you'd like to just run `hakrawler` with
     	Custom headers separated by semi-colon. E.g. -h "Cookie: foo=bar;Authorization: token"
   -insecure
     	Disable TLS verification.
+  -r  
+      Raw output without URL type prefix.
   -t int
     	Number of threads to utilise. (default 8)
 ```
