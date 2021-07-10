@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -37,19 +36,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	// get each line of stdin, push it to the work channel
-	s := bufio.NewScanner(os.Stdin)
+	results := make(chan string, *threads)
+	go func() {
+		// get each line of stdin, push it to the work channel
+		s := bufio.NewScanner(os.Stdin)
+		for s.Scan() {
+			crawl(results, s.Text(), *threads, *depth, *insecure)
+		}
+		if err := s.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		}
+		close(results)
+	}()
+
 	w := bufio.NewWriter(os.Stdout)
 	defer w.Flush()
-	for s.Scan() {
-		crawl(w, s.Text(), *threads, *depth, *insecure)
-	}
-	if err := s.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	for res := range results {
+		fmt.Fprintln(w, res)
 	}
 }
 
-func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
+func crawl(results chan<- string, url string, threads int, depth int, insecure bool) {
 	// Instantiate default collector
 	c := colly.NewCollector(
 		// set MaxDepth to the specified depth, and specify Async for threading
@@ -67,7 +74,7 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 		absoluteURL := e.Request.AbsoluteURL(link)
 
 		if absoluteURL != "" {
-			fmt.Fprintf(w, "[href] %s\n", e.Request.AbsoluteURL(link))
+			results <- "[href] " + e.Request.AbsoluteURL(link)
 			// Visit link found on page on a new thread
 			e.Request.Visit(link)
 		}
@@ -78,7 +85,7 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 		link := e.Attr("src")
 		absoluteURL := e.Request.AbsoluteURL(link)
 		if absoluteURL != "" {
-			fmt.Fprintf(w, "[script] %s\n", e.Request.AbsoluteURL(link))
+			results <- "[script] " + e.Request.AbsoluteURL(link)
 		}
 	})
 
@@ -87,7 +94,7 @@ func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
 		link := e.Attr("action")
 		absoluteURL := e.Request.AbsoluteURL(link)
 		if absoluteURL != "" {
-			fmt.Fprintf(w, "[form] %s\n", e.Request.AbsoluteURL(link))
+			results <- "[form] " + e.Request.AbsoluteURL(link)
 		}
 	})
 
