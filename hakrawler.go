@@ -21,6 +21,7 @@ func main() {
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
 	depth := flag.Int("d", 2, "Depth to crawl.")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
+	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by semi-colon. E.g. -h \"Cookie: foo=bar\" ")
 	flag.Parse()
 
@@ -43,7 +44,61 @@ func main() {
 		// get each line of stdin, push it to the work channel
 		s := bufio.NewScanner(os.Stdin)
 		for s.Scan() {
-			crawl(results, s.Text(), *threads, *depth, *insecure)
+			url := s.Text()
+			hostname, err := extractHostname(url)
+			if err != nil {
+				log.Println("Error parsing URL:", err)
+				return
+			}
+			// Instantiate default collector
+			c := colly.NewCollector(
+				// limit crawling to the domain of the specified URL
+				colly.AllowedDomains(hostname),
+				// set MaxDepth to the specified depth
+				colly.MaxDepth(*depth),
+				// specify Async for threading
+				colly.Async(true),
+			)
+
+			// Set parallelism
+			c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: *threads})
+
+			// Print every href found, and visit it
+			c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+				link := e.Attr("href")
+				printResult(link, "href", *showSource, results, e)
+				e.Request.Visit(link)
+			})
+
+			// find and print all the JavaScript files
+			c.OnHTML("script[src]", func(e *colly.HTMLElement) {
+				printResult(e.Attr("src"), "script", *showSource, results, e)
+			})
+
+			// find and print all the JavaScript files
+			c.OnHTML("form[action]", func(e *colly.HTMLElement) {
+				printResult(e.Attr("action"), "form", *showSource, results, e)
+			})
+
+			// add the custom headers
+			if headers != nil {
+				c.OnRequest(func(r *colly.Request) {
+					for header, value := range headers {
+						r.Headers.Set(header, value)
+					}
+				})
+			}
+
+			// Skip TLS verification if -insecure flag is present
+			c.WithTransport(&http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
+			})
+
+			// Start scraping
+			c.Visit(url)
+			// Wait until threads are finished
+			c.Wait()
+
 		}
 		if err := s.Err(); err != nil {
 			fmt.Fprintln(os.Stderr, "reading standard input:", err)
@@ -56,76 +111,6 @@ func main() {
 	for res := range results {
 		fmt.Fprintln(w, res)
 	}
-}
-
-func crawl(results chan<- string, url string, threads int, depth int, insecure bool) {
-	hostname, err := extractHostname(url)
-	if err != nil {
-		log.Println("Error parsing URL:", err)
-		return
-	}
-	// Instantiate default collector
-	c := colly.NewCollector(
-		// limit crawling to the domain of the specified URL
-		colly.AllowedDomains(hostname),
-		// set MaxDepth to the specified depth
-		colly.MaxDepth(depth),
-		// specify Async for threading
-		colly.Async(true),
-	)
-
-	// Set parallelism
-	c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: threads})
-
-	// Print every href found, and visit it
-	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		link := e.Attr("href")
-		// Print link
-		absoluteURL := e.Request.AbsoluteURL(link)
-
-		if absoluteURL != "" {
-			results <- "[href] " + e.Request.AbsoluteURL(link)
-			// Visit link found on page on a new thread
-			e.Request.Visit(link)
-		}
-	})
-
-	// find and print all the JavaScript files
-	c.OnHTML("script[src]", func(e *colly.HTMLElement) {
-		link := e.Attr("src")
-		absoluteURL := e.Request.AbsoluteURL(link)
-		if absoluteURL != "" {
-			results <- "[script] " + e.Request.AbsoluteURL(link)
-		}
-	})
-
-	// find and print all the JavaScript files
-	c.OnHTML("form[action]", func(e *colly.HTMLElement) {
-		link := e.Attr("action")
-		absoluteURL := e.Request.AbsoluteURL(link)
-		if absoluteURL != "" {
-			results <- "[form] " + e.Request.AbsoluteURL(link)
-		}
-	})
-
-	// add the custom headers
-	if headers != nil {
-		c.OnRequest(func(r *colly.Request) {
-			for header, value := range headers {
-				r.Headers.Set(header, value)
-			}
-		})
-	}
-
-	// Skip TLS verification if -insecure flag is present
-	c.WithTransport(&http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
-	})
-
-	// Start scraping
-	c.Visit(url)
-	// Wait until threads are finished
-	c.Wait()
 }
 
 // parseHeaders does validation of headers input and saves it to a formatted map.
@@ -159,4 +144,15 @@ func extractHostname(urlString string) (string, error) {
 		return "", err
 	}
 	return u.Hostname(), nil
+}
+
+// print result constructs output lines and sends them to the results chan
+func printResult(link string, sourceName string, showSource bool, results chan string, e *colly.HTMLElement) {
+	result := e.Request.AbsoluteURL(link)
+	if result != "" {
+		if showSource {
+			result = "[" + sourceName + "] " + result
+		}
+		results <- result
+	}
 }
