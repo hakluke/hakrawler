@@ -7,7 +7,9 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -50,10 +52,19 @@ func main() {
 }
 
 func crawl(w io.Writer, url string, threads int, depth int, insecure bool) {
+	hostname, err := extractHostname(url)
+	if err != nil {
+		log.Println("Error parsing URL:", err)
+		return
+	}
+
 	// Instantiate default collector
 	c := colly.NewCollector(
-		// set MaxDepth to the specified depth, and specify Async for threading
+		// limit crawling to the domain of the specified URL
+		colly.AllowedDomains(hostname),
+		// set MaxDepth to the specified depth
 		colly.MaxDepth(depth),
+		// specify Async for threading
 		colly.Async(true),
 	)
 
@@ -133,4 +144,13 @@ func parseHeaders(rawHeaders string) error {
 		}
 	}
 	return nil
+}
+
+// extractHostname() extracts the hostname from a URL and returns it
+func extractHostname(urlString string) (string, error) {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return "", err
+	}
+	return u.Hostname(), nil
 }
