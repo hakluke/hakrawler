@@ -2,7 +2,15 @@
 
 Fast golang web crawler for gathering URLs and JavaSript file locations. This is basically a simple implementation of the awesome Gocolly library.
 
-## Example usage
+## Example usages
+
+Single URL:
+
+```
+echo https://google.com | hakrawler
+```
+
+Multiple URLs:
 
 ```
 cat urls.txt | hakrawler
@@ -15,10 +23,6 @@ Get all subdomains of google, find the ones that respond to http(s), crawl them 
 ```
 echo google.com | haktrails subdomains | httpx | hakrawler
 ```
-
-## Usage gif
-
-![Example usage gif](hakrawler-example.gif)
 
 ## Installation
 
@@ -33,14 +37,16 @@ You can now run `~/go/bin/hakrawler`. If you'd like to just run `hakrawler` with
 
 ## Command-line options
 ```
-  -d int
-    	Depth to crawl. (default 2)
-  -h string
-    	Custom headers separated by semi-colon. E.g. -h "Cookie: foo=bar;Authorization: token"
-  -insecure
-    	Disable TLS verification.
-  -t int
-    	Number of threads to utilise. (default 8)
+-d int 
+    Depth to crawl. (default 2)
+-h 
+    Custom headers separated by semi-colon. E.g. -h "Cookie: foo=bar"
+-insecure
+    Disable TLS verification.
+-s
+    Show the source of URL based on where it was found (href, form, script, etc.)
+-t
+    Number of threads to utilise. (default 8)
 ```
 
 ## Version 2 note
