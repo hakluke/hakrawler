@@ -17,12 +17,16 @@ import (
 
 var headers map[string]string
 
+var urls = make(map[string]bool)
+
 func main() {
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
 	depth := flag.Int("d", 2, "Depth to crawl.")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by semi-colon. E.g. -h \"Cookie: foo=bar\" ")
+	unique := flag.Bool(("u"), false, "Show only unique urls")
+
 	flag.Parse()
 
 	// Convert the headers input to a usable map (or die trying)
@@ -108,9 +112,17 @@ func main() {
 
 	w := bufio.NewWriter(os.Stdout)
 	defer w.Flush()
+	if *unique {
+		for res := range results {
+			if isUnique(res) {
+				fmt.Fprintln(w, res)
+			}
+		}
+	}
 	for res := range results {
 		fmt.Fprintln(w, res)
 	}
+
 }
 
 // parseHeaders does validation of headers input and saves it to a formatted map.
@@ -155,4 +167,12 @@ func printResult(link string, sourceName string, showSource bool, results chan s
 		}
 		results <- result
 	}
+}
+
+func isUnique(url string) bool {
+	if urls[url] {
+		return false
+	}
+	urls[url] = true
+	return true
 }
