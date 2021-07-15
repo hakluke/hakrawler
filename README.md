@@ -16,6 +16,14 @@ Multiple URLs:
 cat urls.txt | hakrawler
 ```
 
+Include subdomains:
+
+```
+echo https://google.com | hakrawler -subs
+```
+
+> Note: a common issue is that the tool returns no URLs. This is usually because the URL specified results in a 3xx redirect. This often happens when a domain is specified (https://example.com), but it redirects to (https://www.example.com). In order to overcome this, either specify the final URL in the redirect chain or use the `-subs` option to include subdomains.
+
 ## Example tool chain
 
 Get all subdomains of google, find the ones that respond to http(s), crawl them all.
