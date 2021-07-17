@@ -11,13 +11,15 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/gocolly/colly"
 )
 
 var headers map[string]string
 
-var urls = make(map[string]bool)
+// Thread safe map
+var sm sync.Map
 
 func main() {
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
@@ -169,10 +171,12 @@ func printResult(link string, sourceName string, showSource bool, results chan s
 	}
 }
 
+// returns whether the supplied url is unique or not
 func isUnique(url string) bool {
-	if urls[url] {
+	_, present := sm.Load(url)
+	if present {
 		return false
 	}
-	urls[url] = true
+	sm.Store(url, true)
 	return true
 }
