@@ -56,6 +56,7 @@ You can now run `~/go/bin/hakrawler`. If you'd like to just run `hakrawler` with
     	Include subdomains for crawling.
   -t int
     	Number of threads to utilise. (default 8)
+  -u	Show only unique urls
 ```
 
 ## Version 2 note
