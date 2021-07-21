@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -25,6 +26,7 @@ func main() {
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
 	depth := flag.Int("d", 2, "Depth to crawl.")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
+	subsInScope := flag.Bool("subs", false, "Include subdomains for crawling.")
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by semi-colon. E.g. -h \"Cookie: foo=bar\" ")
 	unique := flag.Bool(("u"), false, "Show only unique urls")
@@ -56,6 +58,7 @@ func main() {
 				log.Println("Error parsing URL:", err)
 				return
 			}
+
 			// Instantiate default collector
 			c := colly.NewCollector(
 				// limit crawling to the domain of the specified URL
@@ -65,6 +68,12 @@ func main() {
 				// specify Async for threading
 				colly.Async(true),
 			)
+
+			// if -subs is present, use regex to filter out subdomains in scope.
+			if *subsInScope {
+				c.AllowedDomains = nil
+				c.URLFilters = []*regexp.Regexp{regexp.MustCompile(".*(\\.|\\/\\/)" + strings.ReplaceAll(hostname, ".", "\\.") + "((#|\\/|\\?).*)?")}
+			}
 
 			// Set parallelism
 			c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: *threads})
