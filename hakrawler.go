@@ -12,11 +12,15 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/gocolly/colly"
 )
 
 var headers map[string]string
+
+// Thread safe map
+var sm sync.Map
 
 func main() {
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
@@ -25,6 +29,7 @@ func main() {
 	subsInScope := flag.Bool("subs", false, "Include subdomains for crawling.")
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by semi-colon. E.g. -h \"Cookie: foo=bar\" ")
+	unique := flag.Bool(("u"), false, "Show only unique urls")
 
 	flag.Parse()
 
@@ -118,9 +123,17 @@ func main() {
 
 	w := bufio.NewWriter(os.Stdout)
 	defer w.Flush()
+	if *unique {
+		for res := range results {
+			if isUnique(res) {
+				fmt.Fprintln(w, res)
+			}
+		}
+	}
 	for res := range results {
 		fmt.Fprintln(w, res)
 	}
+
 }
 
 // parseHeaders does validation of headers input and saves it to a formatted map.
@@ -165,4 +178,14 @@ func printResult(link string, sourceName string, showSource bool, results chan s
 		}
 		results <- result
 	}
+}
+
+// returns whether the supplied url is unique or not
+func isUnique(url string) bool {
+	_, present := sm.Load(url)
+	if present {
+		return false
+	}
+	sm.Store(url, true)
+	return true
 }
