@@ -7,4 +7,10 @@ FROM alpine@sha256:be9bdc0ef8e96dbc428dc189b31e2e3b05523d96d12ed627c37aa29366532
 RUN apk -U upgrade --no-cache
 COPY --from=build /go/bin/hakrawler /usr/local/bin/hakrawler
 
+RUN adduser \
+    --gecos "" \
+    --disabled-password \
+    hakrawler
+
+USER hakrawler
 ENTRYPOINT ["hakrawler"]
