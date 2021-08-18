@@ -61,6 +61,7 @@ func main() {
 
 			// Instantiate default collector
 			c := colly.NewCollector(
+				colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"),
 				// limit crawling to the domain of the specified URL
 				colly.AllowedDomains(hostname),
 				// set MaxDepth to the specified depth
@@ -144,13 +145,13 @@ func parseHeaders(rawHeaders string) error {
 		}
 
 		headers = make(map[string]string)
-		rawHeaders := strings.Split(rawHeaders, ";")
+		rawHeaders := strings.Split(rawHeaders, ";;")
 		for _, header := range rawHeaders {
 			var parts []string
 			if strings.Contains(header, ": ") {
-				parts = strings.Split(header, ": ")
+				parts = strings.SplitN(header, ": ", 2)
 			} else if strings.Contains(header, ":") {
-				parts = strings.Split(header, ":")
+				parts = strings.SplitN(header, ":", 2)
 			} else {
 				continue
 			}
