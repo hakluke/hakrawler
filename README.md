@@ -48,7 +48,7 @@ You can now run `~/go/bin/hakrawler`. If you'd like to just run `hakrawler` with
   -d int
     	Depth to crawl. (default 2)
   -h string
-    	Custom headers separated by semi-colon. E.g. -h "Cookie: foo=bar"
+    	Custom headers separated by two semi-colons. E.g. -h "Cookie: foo=bar;;Referer: http://example.com/"
   -insecure
     	Disable TLS verification.
   -s	Show the source of URL based on where it was found (href, form, script, etc.)
