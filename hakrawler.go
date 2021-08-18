@@ -61,6 +61,7 @@ func main() {
 
 			// Instantiate default collector
 			c := colly.NewCollector(
+                // default user agent header
 				colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"),
 				// limit crawling to the domain of the specified URL
 				colly.AllowedDomains(hostname),
