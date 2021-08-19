@@ -28,7 +28,7 @@ func main() {
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
 	subsInScope := flag.Bool("subs", false, "Include subdomains for crawling.")
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
-	rawHeaders := flag.String(("h"), "", "Custom headers separated by semi-colon. E.g. -h \"Cookie: foo=bar\" ")
+	rawHeaders := flag.String(("h"), "", "Custom headers separated by two semi-colons. E.g. -h \"Cookie: foo=bar;;Referer: http://example.com/\" ")
 	unique := flag.Bool(("u"), false, "Show only unique urls")
 
 	flag.Parse()
@@ -61,6 +61,8 @@ func main() {
 
 			// Instantiate default collector
 			c := colly.NewCollector(
+                // default user agent header
+				colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"),
 				// limit crawling to the domain of the specified URL
 				colly.AllowedDomains(hostname),
 				// set MaxDepth to the specified depth
@@ -144,13 +146,13 @@ func parseHeaders(rawHeaders string) error {
 		}
 
 		headers = make(map[string]string)
-		rawHeaders := strings.Split(rawHeaders, ";")
+		rawHeaders := strings.Split(rawHeaders, ";;")
 		for _, header := range rawHeaders {
 			var parts []string
 			if strings.Contains(header, ": ") {
-				parts = strings.Split(header, ": ")
+				parts = strings.SplitN(header, ": ", 2)
 			} else if strings.Contains(header, ":") {
-				parts = strings.Split(header, ":")
+				parts = strings.SplitN(header, ":", 2)
 			} else {
 				continue
 			}
