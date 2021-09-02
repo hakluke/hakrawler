@@ -30,7 +30,7 @@ func main() {
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by two semi-colons. E.g. -h \"Cookie: foo=bar;;Referer: http://example.com/\" ")
 	unique := flag.Bool(("u"), false, "Show only unique urls")
-
+	matchstr := flag.String("m", "", "Match string")
 	flag.Parse()
 
 	// Convert the headers input to a usable map (or die trying)
@@ -83,20 +83,55 @@ func main() {
 			// Print every href found, and visit it
 			c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 				link := e.Attr("href")
-				printResult(link, "href", *showSource, results, e)
+				if matchstr != nil {
+					if strings.Contains(link, *matchstr){
+						
+						printResultOnMatch(e.Request.URL.String(), link, "href", results, e)
+					}
+				} else {
+					printResult(link, "href", *showSource, results, e)
+				}
 				e.Request.Visit(link)
 			})
 
 			// find and print all the JavaScript files
 			c.OnHTML("script[src]", func(e *colly.HTMLElement) {
-				printResult(e.Attr("src"), "script", *showSource, results, e)
+				if matchstr != nil {
+					if strings.Contains(e.Attr("src"), *matchstr) {
+						printResultOnMatch(e.Request.URL.String(), e.Attr("src"), "script", results, e)
+					}
+				} else {
+					printResult(e.Attr("src"), "script", *showSource, results, e)
+				}
 			})
 
 			// find and print all the JavaScript files
 			c.OnHTML("form[action]", func(e *colly.HTMLElement) {
-				printResult(e.Attr("action"), "form", *showSource, results, e)
+				if matchstr != nil {
+					if strings.Contains(e.Attr("src"),*matchstr){
+						printResultOnMatch(e.Request.URL.String(), e.Attr("action"), "form", results, e)
+					}
+				} else {
+					printResult(e.Attr("action"), "form", *showSource, results, e)
+				}
 			})
 
+			if matchstr != nil {
+				// Print every CSS found
+				c.OnHTML("link[href]", func(e *colly.HTMLElement) {
+					if strings.Contains(e.Attr("href"), *matchstr){ 
+						printResultOnMatch(e.Request.URL.String(), e.Attr("href"), "css",  results, e)
+					}
+				})
+
+				// Print every IMG found
+				c.OnHTML("img[src]", func(e *colly.HTMLElement) {
+					if strings.Contains(e.Attr("src"), *matchstr){
+						printResultOnMatch(e.Request.URL.String(), e.Attr("src"), "img",  results, e)
+					}
+				})
+			}
+				
 			// add the custom headers
 			if headers != nil {
 				c.OnRequest(func(r *colly.Request) {
@@ -178,6 +213,16 @@ func printResult(link string, sourceName string, showSource bool, results chan s
 		if showSource {
 			result = "[" + sourceName + "] " + result
 		}
+		results <- result
+	}
+}
+
+// print result constructs output lines and sends them to the results chan
+func printResultOnMatch(Url string, link string, sourceName string, results chan string, e *colly.HTMLElement) {
+	result := e.Request.AbsoluteURL(link)
+	originUrl := e.Request.AbsoluteURL(string(Url))
+	if result != "" {
+		result = "["+ originUrl +"]->["+ sourceName + "] " + result
 		results <- result
 	}
 }
