@@ -22,6 +22,12 @@ Include subdomains:
 echo https://google.com | hakrawler -subs
 ```
 
+#### TIP 
+Using the python [intimations](https://github.com/AbhijithAJ/intimations) module, you can receive a message to your telegram mobile application once the execution is complete.
+```
+cat urls.txt | hakrawler ; python3 -m intimations telegram --title 'hakrawler' --message 'hakrawler finished it's work.' 
+``` 
+
 > Note: a common issue is that the tool returns no URLs. This usually happens when a domain is specified (https://example.com), but it redirects to a subdomain (https://www.example.com). The subdomain is not included in the scope, so the no URLs are printed. In order to overcome this, either specify the final URL in the redirect chain or use the `-subs` option to include subdomains.
 
 ## Example tool chain
