@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/v2"
 )
 
 var headers map[string]string
@@ -168,7 +168,7 @@ func extractHostname(urlString string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return u.Host, nil
+	return u.Hostname(), nil
 }
 
 // print result constructs output lines and sends them to the results chan
