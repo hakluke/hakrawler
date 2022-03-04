@@ -168,7 +168,7 @@ func extractHostname(urlString string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return u.Hostname(), nil
+	return u.Host, nil
 }
 
 // print result constructs output lines and sends them to the results chan
