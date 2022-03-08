@@ -59,12 +59,22 @@ func main() {
 				return
 			}
 
+			allowed_domains := []string{hostname}
+			// if "Host" header is set, append it to allowed domains
+			if headers != nil {
+				if val, ok := headers["Host"]; ok {
+					allowed_domains = append(allowed_domains, val)
+				}
+			}
+
 			// Instantiate default collector
 			c := colly.NewCollector(
 				// default user agent header
 				colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"),
+				// set custom headers
+				colly.Headers(headers),
 				// limit crawling to the domain of the specified URL
-				colly.AllowedDomains(hostname),
+				colly.AllowedDomains(allowed_domains...),
 				// set MaxDepth to the specified depth
 				colly.MaxDepth(*depth),
 				// specify Async for threading
