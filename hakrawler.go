@@ -147,7 +147,6 @@ func main() {
 				c.Wait()
 			} else {
 				timer := make(chan int, 1)
-
 				go func() {
 					// Start scraping
 					c.Visit(url)
@@ -160,8 +159,9 @@ func main() {
 				case _ = <-timer:
 					continue
 				case <-time.After(time.Duration(*timeout) * time.Second):
+					close(timer)
 					if *showSource {
-						results <- "[timeout] " + url
+						log.Println("[timeout]", url)
 					}
 				}
 			}
@@ -228,6 +228,11 @@ func printResult(link string, sourceName string, showSource bool, results chan s
 		if showSource {
 			result = "[" + sourceName + "] " + result
 		}
+		defer func() {
+			if err := recover(); err != nil {
+				// nop dont care
+			}
+		}()
 		results <- result
 	}
 }
