@@ -16,6 +16,12 @@ Multiple URLs:
 cat urls.txt | hakrawler
 ```
 
+Timeout for each line of stdin after 5 seconds:
+
+```
+cat urls.txt | hakrawler -timeout 5
+```
+
 Include subdomains:
 
 ```

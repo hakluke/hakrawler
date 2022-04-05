@@ -26,13 +26,13 @@ var sm sync.Map
 func main() {
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
 	depth := flag.Int("d", 2, "Depth to crawl.")
-	timeout := flag.Int("timeout", -1, "Time to crawl each URL from stdin")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
 	subsInScope := flag.Bool("subs", false, "Include subdomains for crawling.")
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by two semi-colons. E.g. -h \"Cookie: foo=bar;;Referer: http://example.com/\" ")
 	unique := flag.Bool(("u"), false, "Show only unique urls")
 	proxy := flag.String(("proxy"), "", "Proxy URL. Example: -proxy http://127.0.0.1:8080")
+	timeout := flag.Int("timeout", -1, "Maximum time to crawl each URL from stdin, in seconds")
 
 	flag.Parse()
 
@@ -137,31 +137,30 @@ func main() {
 				})
 			}
 
-			// for github issue "Max time" #54
-			// timeout for each URL from stdin
 			if *timeout == -1 {
 				// Start scraping
 				c.Visit(url)
 				// Wait until threads are finished
 				c.Wait()
 			} else {
-				timer := make(chan int, 1)
+				finished := make(chan int, 1)
+        
 				go func() {
 					// Start scraping
 					c.Visit(url)
 					// Wait until threads are finished
 					c.Wait()
-					timer <- 0
+					finished <- 0
 				}()
 
 				select {
-				case _ = <-timer:
+				case _ = <-finished: // the crawling finished before the timeout
+					close(finished)
 					continue
-				case <-time.After(time.Duration(*timeout) * time.Second):
-					close(timer)
-					if *showSource {
-						log.Println("[timeout]", url)
-					}
+				case <-time.After(time.Duration(*timeout) * time.Second): // timeout reached
+					log.Println("[timeout] " + url)
+					continue
+
 				}
 			}
 
@@ -222,6 +221,14 @@ func extractHostname(urlString string) (string, error) {
 
 // print result constructs output lines and sends them to the results chan
 func printResult(link string, sourceName string, showSource bool, results chan string, e *colly.HTMLElement) {
+
+	// If timeout occurs before goroutines are finished, recover from panic that may occur when attempting writing to results to closed result channel
+	defer func() {
+		if r := recover(); r != nil {
+			return
+		}
+	}()
+
 	result := e.Request.AbsoluteURL(link)
 	if result != "" {
 		if showSource {
