@@ -22,6 +22,12 @@ Timeout for each line of stdin after 5 seconds:
 cat urls.txt | hakrawler -timeout 5
 ```
 
+Send all requests through a proxy:
+
+```
+cat urls.txt | hakrawler -proxy http://localhost:8080
+```
+
 Include subdomains:
 
 ```
@@ -76,25 +82,21 @@ echo https://www.google.com | docker run --rm -i hakluke/hakrawler -subs
 
 ## Command-line options
 ```
+Usage of ./hakrawler:
   -d int
     	Depth to crawl. (default 2)
   -h string
     	Custom headers separated by two semi-colons. E.g. -h "Cookie: foo=bar;;Referer: http://example.com/"
   -insecure
     	Disable TLS verification.
+  -proxy string
+    	Proxy URL. Example: -proxy http://127.0.0.1:8080
   -s	Show the source of URL based on where it was found (href, form, script, etc.)
   -subs
     	Include subdomains for crawling.
   -t int
     	Number of threads to utilise. (default 8)
+  -timeout int
+    	Maximum time to crawl each URL from stdin, in seconds (default -1)
   -u	Show only unique urls
 ```
-
-## Version 2 note
-
-From version 2, hakrawler has been completely rewritten and dramatically simplified to align more closely with the unix philosophy.
-
-- It is now much faster and less buggy.
-- Many features have been deprecated (robots.txt parsing, JS file parsing, sitemap parsing, waybackurls), instead, these features are written into separate tools that can be piped to from hakrawler.
-- No more terminal colours because they can cause annoying issues when piping to other tools.
-- Version 1 was my first ever Go project and the code was bad.
