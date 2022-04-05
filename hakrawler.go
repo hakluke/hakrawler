@@ -123,11 +123,6 @@ func main() {
 				})
 			}
 
-			// Skip TLS verification if -insecure flag is present
-			c.WithTransport(&http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
-			})
-
 			if *proxy != "" {
 				// Skip TLS verification for proxy
 				c.WithTransport(&http.Transport{
@@ -135,6 +130,7 @@ func main() {
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
 				})
 			} else {
+				// Skip TLS verification if -insecure flag is present
 				c.WithTransport(&http.Transport{
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
 				})
