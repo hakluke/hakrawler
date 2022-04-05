@@ -31,9 +31,15 @@ func main() {
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by two semi-colons. E.g. -h \"Cookie: foo=bar;;Referer: http://example.com/\" ")
 	unique := flag.Bool(("u"), false, "Show only unique urls")
+	proxy := flag.String(("proxy"), "", "Proxy URL. Example: -proxy http://127.0.0.1:8080")
 	timeout := flag.Int("timeout", -1, "Maximum time to crawl each URL from stdin, in seconds")
 
 	flag.Parse()
+
+	if *proxy != "" {
+		os.Setenv("PROXY", *proxy)
+	}
+	proxyURL, _ := url.Parse(os.Getenv("PROXY"))
 
 	// Convert the headers input to a usable map (or die trying)
 	err := parseHeaders(*rawHeaders)
@@ -118,10 +124,18 @@ func main() {
 				})
 			}
 
-			// Skip TLS verification if -insecure flag is present
-			c.WithTransport(&http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
-			})
+			if *proxy != "" {
+				// Skip TLS verification for proxy, if -insecure specified
+				c.WithTransport(&http.Transport{
+					Proxy:           http.ProxyURL(proxyURL),
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
+				})
+			} else {
+				// Skip TLS verification if -insecure flag is present
+				c.WithTransport(&http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
+				})
+			}
 
 			if *timeout == -1 {
 				// Start scraping
@@ -130,6 +144,7 @@ func main() {
 				c.Wait()
 			} else {
 				finished := make(chan int, 1)
+        
 				go func() {
 					// Start scraping
 					c.Visit(url)
@@ -145,6 +160,7 @@ func main() {
 				case <-time.After(time.Duration(*timeout) * time.Second): // timeout reached
 					log.Println("[timeout] " + url)
 					continue
+
 				}
 			}
 
@@ -218,6 +234,11 @@ func printResult(link string, sourceName string, showSource bool, results chan s
 		if showSource {
 			result = "[" + sourceName + "] " + result
 		}
+		defer func() {
+			if err := recover(); err != nil {
+				// nop dont care
+			}
+		}()
 		results <- result
 	}
 }
