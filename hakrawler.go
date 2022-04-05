@@ -32,13 +32,12 @@ func main() {
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by two semi-colons. E.g. -h \"Cookie: foo=bar;;Referer: http://example.com/\" ")
 	unique := flag.Bool(("u"), false, "Show only unique urls")
-	proxy := flag.String(("proxy"), "", "Proxy URL, example: -proxy http://127.0.0.1:8080")
+	proxy := flag.String(("proxy"), "", "Proxy URL. Example: -proxy http://127.0.0.1:8080")
 
 	flag.Parse()
 
 	if *proxy != "" {
 		os.Setenv("PROXY", *proxy)
-		*insecure = true
 	}
 	proxyURL, _ := url.Parse(os.Getenv("PROXY"))
 
@@ -126,7 +125,7 @@ func main() {
 			}
 
 			if *proxy != "" {
-				// Skip TLS verification for proxy
+				// Skip TLS verification for proxy, if -insecure specified
 				c.WithTransport(&http.Transport{
 					Proxy:           http.ProxyURL(proxyURL),
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
