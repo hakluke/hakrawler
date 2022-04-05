@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gocolly/colly/v2"
 )
@@ -25,6 +26,7 @@ var sm sync.Map
 func main() {
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
 	depth := flag.Int("d", 2, "Depth to crawl.")
+	timeout := flag.Int("timeout", -1, "Time to crawl each URL from stdin")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
 	subsInScope := flag.Bool("subs", false, "Include subdomains for crawling.")
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
@@ -136,10 +138,33 @@ func main() {
 				})
 			}
 
-			// Start scraping
-			c.Visit(url)
-			// Wait until threads are finished
-			c.Wait()
+			// for github issue "Max time" #54
+			// timeout for each URL from stdin
+			if *timeout == -1 {
+				// Start scraping
+				c.Visit(url)
+				// Wait until threads are finished
+				c.Wait()
+			} else {
+				timer := make(chan int, 1)
+
+				go func() {
+					// Start scraping
+					c.Visit(url)
+					// Wait until threads are finished
+					c.Wait()
+					timer <- 0
+				}()
+
+				select {
+				case _ = <-timer:
+					continue
+				case <-time.After(time.Duration(*timeout) * time.Second):
+					if *showSource {
+						results <- "[timeout] " + url
+					}
+				}
+			}
 
 		}
 		if err := s.Err(); err != nil {
