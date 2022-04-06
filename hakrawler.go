@@ -91,7 +91,9 @@ func main() {
 			)
 
 			// set a page size limit
-			c.MaxBodySize = *maxSize * 1024
+			if *maxSize != -1 {
+				c.MaxBodySize = *maxSize * 1024
+			}
 
 			// if -subs is present, use regex to filter out subdomains in scope.
 			if *subsInScope {
