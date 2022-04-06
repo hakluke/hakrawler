@@ -32,7 +32,7 @@ func main() {
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found. E.g. href, form, script, etc.")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by two semi-colons. E.g. -h \"Cookie: foo=bar;;Referer: http://example.com/\" ")
 	unique := flag.Bool(("u"), false, "Show only unique urls.")
-	proxy := flag.String(("proxy"), "", "Proxy URL. E.g.: -proxy http://127.0.0.1:8080")
+	proxy := flag.String(("proxy"), "", "Proxy URL. E.g. -proxy http://127.0.0.1:8080")
 	timeout := flag.Int("timeout", -1, "Maximum time to crawl each URL from stdin, in seconds.")
 
 	flag.Parse()
