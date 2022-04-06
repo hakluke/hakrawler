@@ -26,6 +26,7 @@ var sm sync.Map
 func main() {
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
 	depth := flag.Int("d", 2, "Depth to crawl.")
+	maxSize := flag.Int("size", -1, "Page size limit, in KB.")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
 	subsInScope := flag.Bool("subs", false, "Include subdomains for crawling.")
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found (href, form, script, etc.)")
@@ -89,6 +90,11 @@ func main() {
 				colly.Async(true),
 			)
 
+			// set a page size limit
+			if *maxSize != -1 {
+				c.MaxBodySize = *maxSize * 1024
+			}
+
 			// if -subs is present, use regex to filter out subdomains in scope.
 			if *subsInScope {
 				c.AllowedDomains = nil
@@ -144,7 +150,7 @@ func main() {
 				c.Wait()
 			} else {
 				finished := make(chan int, 1)
-        
+
 				go func() {
 					// Start scraping
 					c.Visit(url)
