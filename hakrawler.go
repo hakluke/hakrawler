@@ -228,21 +228,15 @@ func extractHostname(urlString string) (string, error) {
 // print result constructs output lines and sends them to the results chan
 func printResult(link string, sourceName string, showSource bool, results chan string, e *colly.HTMLElement) {
 
-	// If timeout occurs before goroutines are finished, recover from panic that may occur when attempting writing to results to closed result channel
-	defer func() {
-		if r := recover(); r != nil {
-			return
-		}
-	}()
-
 	result := e.Request.AbsoluteURL(link)
 	if result != "" {
 		if showSource {
 			result = "[" + sourceName + "] " + result
 		}
+		// If timeout occurs before goroutines are finished, recover from panic that may occur when attempting writing to results to closed results channel
 		defer func() {
 			if err := recover(); err != nil {
-				// nop dont care
+				return
 			}
 		}()
 		results <- result
