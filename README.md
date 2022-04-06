@@ -82,7 +82,7 @@ echo https://www.google.com | docker run --rm -i hakluke/hakrawler -subs
 
 ## Command-line options
 ```
-Usage of ./hakrawler:
+Usage of hakrawler:
   -d int
     	Depth to crawl. (default 2)
   -h string
@@ -90,13 +90,15 @@ Usage of ./hakrawler:
   -insecure
     	Disable TLS verification.
   -proxy string
-    	Proxy URL. Example: -proxy http://127.0.0.1:8080
-  -s	Show the source of URL based on where it was found (href, form, script, etc.)
+    	Proxy URL. E.g. -proxy http://127.0.0.1:8080
+  -s	Show the source of URL based on where it was found. E.g. href, form, script, etc.
+  -size int
+    	Page size limit, in KB. (default -1)
   -subs
     	Include subdomains for crawling.
   -t int
     	Number of threads to utilise. (default 8)
   -timeout int
-    	Maximum time to crawl each URL from stdin, in seconds (default -1)
-  -u	Show only unique urls
+    	Maximum time to crawl each URL from stdin, in seconds. (default -1)
+  -u	Show only unique urls.
 ```
