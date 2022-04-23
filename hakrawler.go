@@ -240,13 +240,10 @@ func printResult(link string, sourceName string, showSource bool, showJson bool,
 			result = "[" + sourceName + "] " + result
 		}
 		if showJson {
-			bytes, err := json.Marshal(Result{
+			bytes, _ := json.Marshal(Result{
 				Source: sourceName,
 				URL:    result,
 			})
-			if err != nil {
-				log.Println(err)
-			}
 			result = string(bytes)
 		}
 		// If timeout occurs before goroutines are finished, recover from panic that may occur when attempting writing to results to closed results channel
