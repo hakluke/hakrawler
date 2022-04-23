@@ -79,15 +79,24 @@ echo https://www.google.com | docker run --rm -i hakluke/hakrawler -subs
   -d int
     	Depth to crawl. (default 2)
   -h string
-    	Custom headers separated by two semi-colons. E.g. -h "Cookie: foo=bar;;Referer: http://example.com/"
+    	Custom headers separated by two semi-colons. E.g. -h "Cookie: foo=bar;;Referer: http://example.com/" 
   -insecure
     	Disable TLS verification.
-  -s	Show the source of URL based on where it was found (href, form, script, etc.)
+  -json
+    	Output as JSON.
+  -proxy string
+    	Proxy URL. E.g. -proxy http://127.0.0.1:8080
+  -s	Show the source of URL based on where it was found. E.g. href, form, script, etc.
+  -size int
+    	Page size limit, in KB. (default -1)
   -subs
     	Include subdomains for crawling.
   -t int
     	Number of threads to utilise. (default 8)
-  -u	Show only unique urls
+  -timeout int
+    	Maximum time to crawl each URL from stdin, in seconds. (default -1)
+  -u	Show only unique urls.
+
 ```
 
 ## Version 2 note
