@@ -236,15 +236,14 @@ func extractHostname(urlString string) (string, error) {
 func printResult(link string, sourceName string, showSource bool, showJson bool, results chan string, e *colly.HTMLElement) {
 	result := e.Request.AbsoluteURL(link)
 	if result != "" {
-		if showSource {
-			result = "[" + sourceName + "] " + result
-		}
 		if showJson {
 			bytes, _ := json.Marshal(Result{
 				Source: sourceName,
 				URL:    result,
 			})
 			result = string(bytes)
+		} else if showSource {
+			result = "[" + sourceName + "] " + result
 		}
 		// If timeout occurs before goroutines are finished, recover from panic that may occur when attempting writing to results to closed results channel
 		defer func() {
