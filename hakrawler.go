@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -18,6 +19,11 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
+type Result struct {
+	Source string
+	URL    string
+}
+
 var headers map[string]string
 
 // Thread safe map
@@ -29,6 +35,7 @@ func main() {
 	maxSize := flag.Int("size", -1, "Page size limit, in KB.")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification.")
 	subsInScope := flag.Bool("subs", false, "Include subdomains for crawling.")
+	showJson := flag.Bool("json", false, "Output as JSON.")
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found. E.g. href, form, script, etc.")
 	rawHeaders := flag.String(("h"), "", "Custom headers separated by two semi-colons. E.g. -h \"Cookie: foo=bar;;Referer: http://example.com/\" ")
 	unique := flag.Bool(("u"), false, "Show only unique urls.")
@@ -107,18 +114,18 @@ func main() {
 			// Print every href found, and visit it
 			c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 				link := e.Attr("href")
-				printResult(link, "href", *showSource, results, e)
+				printResult(link, "href", *showSource, *showJson, results, e)
 				e.Request.Visit(link)
 			})
 
 			// find and print all the JavaScript files
 			c.OnHTML("script[src]", func(e *colly.HTMLElement) {
-				printResult(e.Attr("src"), "script", *showSource, results, e)
+				printResult(e.Attr("src"), "script", *showSource, *showJson, results, e)
 			})
 
 			// find and print all the form action URLs
 			c.OnHTML("form[action]", func(e *colly.HTMLElement) {
-				printResult(e.Attr("action"), "form", *showSource, results, e)
+				printResult(e.Attr("action"), "form", *showSource, *showJson, results, e)
 			})
 
 			// add the custom headers
@@ -226,11 +233,16 @@ func extractHostname(urlString string) (string, error) {
 }
 
 // print result constructs output lines and sends them to the results chan
-func printResult(link string, sourceName string, showSource bool, results chan string, e *colly.HTMLElement) {
-
+func printResult(link string, sourceName string, showSource bool, showJson bool, results chan string, e *colly.HTMLElement) {
 	result := e.Request.AbsoluteURL(link)
 	if result != "" {
-		if showSource {
+		if showJson {
+			bytes, _ := json.Marshal(Result{
+				Source: sourceName,
+				URL:    result,
+			})
+			result = string(bytes)
+		} else if showSource {
 			result = "[" + sourceName + "] " + result
 		}
 		// If timeout occurs before goroutines are finished, recover from panic that may occur when attempting writing to results to closed results channel

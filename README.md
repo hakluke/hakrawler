@@ -86,9 +86,11 @@ Usage of hakrawler:
   -d int
     	Depth to crawl. (default 2)
   -h string
-    	Custom headers separated by two semi-colons. E.g. -h "Cookie: foo=bar;;Referer: http://example.com/"
+    	Custom headers separated by two semi-colons. E.g. -h "Cookie: foo=bar;;Referer: http://example.com/" 
   -insecure
     	Disable TLS verification.
+  -json
+    	Output as JSON.
   -proxy string
     	Proxy URL. E.g. -proxy http://127.0.0.1:8080
   -s	Show the source of URL based on where it was found. E.g. href, form, script, etc.
