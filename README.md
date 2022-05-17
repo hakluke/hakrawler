@@ -73,6 +73,11 @@ cd hakrawler
 docker build -t hakluke/hakrawler .
 docker run --rm -i hakluke/hakrawler --help
 ```
+### Kali Linux: Using apt
+
+```sh
+sudo apt install hakrawler
+```
 
 Then, to run hakrawler:
 
