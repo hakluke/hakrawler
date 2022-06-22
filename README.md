@@ -1,6 +1,6 @@
 # Hakrawler
 
-Fast golang web crawler for gathering URLs and JavaSript file locations. This is basically a simple implementation of the awesome Gocolly library.
+Fast golang web crawler for gathering URLs and JavaScript file locations. This is basically a simple implementation of the awesome Gocolly library.
 
 ## Example usages
 
@@ -55,7 +55,7 @@ Then run this command to download + compile hakrawler:
 go install github.com/hakluke/hakrawler@latest
 ```
 
-You can now run `~/go/bin/hakrawler`. If you'd like to just run `hakrawler` without the full path, you'll need to `export PATH="/go/bin/:$PATH"`. You can also add this line to your `~/.bashrc` file if you'd like this to persist.
+You can now run `~/go/bin/hakrawler`. If you'd like to just run `hakrawler` without the full path, you'll need to `export PATH="~/go/bin/:$PATH"`. You can also add this line to your `~/.bashrc` file if you'd like this to persist.
 
 ### Docker Install (from dockerhub)
 
@@ -72,6 +72,11 @@ git clone https://github.com/hakluke/hakrawler
 cd hakrawler
 docker build -t hakluke/hakrawler .
 docker run --rm -i hakluke/hakrawler --help
+```
+### Kali Linux: Using apt
+
+```sh
+sudo apt install hakrawler
 ```
 
 Then, to run hakrawler:

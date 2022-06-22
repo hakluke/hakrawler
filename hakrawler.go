@@ -72,7 +72,7 @@ func main() {
 			hostname, err := extractHostname(url)
 			if err != nil {
 				log.Println("Error parsing URL:", err)
-				return
+				continue
 			}
 
 			allowed_domains := []string{hostname}
@@ -226,9 +226,10 @@ func parseHeaders(rawHeaders string) error {
 // extractHostname() extracts the hostname from a URL and returns it
 func extractHostname(urlString string) (string, error) {
 	u, err := url.Parse(urlString)
-	if err != nil {
-		return "", err
+	if err != nil || !u.IsAbs() {
+		return "", errors.New("Input must be a valid absolute URL")
 	}
+
 	return u.Hostname(), nil
 }
 
