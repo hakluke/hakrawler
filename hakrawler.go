@@ -30,6 +30,7 @@ var headers map[string]string
 var sm sync.Map
 
 func main() {
+	inside := flag.Bool("i", false, "Only crawl inside path")
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
 	depth := flag.Int("d", 2, "Depth to crawl.")
 	maxSize := flag.Int("size", -1, "Page size limit, in KB.")
@@ -114,8 +115,12 @@ func main() {
 			// Print every href found, and visit it
 			c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 				link := e.Attr("href")
-				printResult(link, "href", *showSource, *showJson, results, e)
-				e.Request.Visit(link)
+				abs_link := e.Request.AbsoluteURL(link)
+				if strings.Contains(abs_link, url) || !*inside {
+
+					printResult(link, "href", *showSource, *showJson, results, e)
+					e.Request.Visit(link)
+				}
 			})
 
 			// find and print all the JavaScript files
