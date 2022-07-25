@@ -99,6 +99,7 @@ Usage of hakrawler:
   -proxy string
     	Proxy URL. E.g. -proxy http://127.0.0.1:8080
   -s	Show the source of URL based on where it was found. E.g. href, form, script, etc.
+  -w    Show at which link the URL is found.
   -size int
     	Page size limit, in KB. (default -1)
   -subs
