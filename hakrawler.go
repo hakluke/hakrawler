@@ -41,6 +41,7 @@ func main() {
 	unique := flag.Bool(("u"), false, "Show only unique urls.")
 	proxy := flag.String(("proxy"), "", "Proxy URL. E.g. -proxy http://127.0.0.1:8080")
 	timeout := flag.Int("timeout", -1, "Maximum time to crawl each URL from stdin, in seconds.")
+	disableRedirects := flag.Bool("dr", false, "Disables following HTTP redirects. Defaults to false.")
 
 	flag.Parse()
 
@@ -106,6 +107,14 @@ func main() {
 			if *subsInScope {
 				c.AllowedDomains = nil
 				c.URLFilters = []*regexp.Regexp{regexp.MustCompile(".*(\\.|\\/\\/)" + strings.ReplaceAll(hostname, ".", "\\.") + "((#|\\/|\\?).*)?")}
+			}
+
+			// if -dr is set to true, do not follow redirects
+			if *disableRedirects == true {
+				disableRedirectFunc := func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				}
+				c.SetRedirectHandler(disableRedirectFunc)
 			}
 
 			// Set parallelism

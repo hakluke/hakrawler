@@ -108,4 +108,5 @@ Usage of hakrawler:
   -timeout int
     	Maximum time to crawl each URL from stdin, in seconds. (default -1)
   -u	Show only unique urls.
+  -dr Disable following HTTP redirects.
 ```
