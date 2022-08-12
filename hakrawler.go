@@ -41,7 +41,7 @@ func main() {
 	unique := flag.Bool(("u"), false, "Show only unique urls.")
 	proxy := flag.String(("proxy"), "", "Proxy URL. E.g. -proxy http://127.0.0.1:8080")
 	timeout := flag.Int("timeout", -1, "Maximum time to crawl each URL from stdin, in seconds.")
-	disableRedirects := flag.Bool("dr", false, "Disables following HTTP redirects. Defaults to false.")
+	disableRedirects := flag.Bool("dr", false, "Disable following HTTP redirects.")
 
 	flag.Parse()
 
