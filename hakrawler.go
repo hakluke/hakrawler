@@ -109,14 +109,12 @@ func main() {
 				c.URLFilters = []*regexp.Regexp{regexp.MustCompile(".*(\\.|\\/\\/)" + strings.ReplaceAll(hostname, ".", "\\.") + "((#|\\/|\\?).*)?")}
 			}
 
-			// if -dr is set to true, do not follow redirects
-			if *disableRedirects == true {
-				disableRedirectFunc := func(req *http.Request, via []*http.Request) error {
+			// If `-dr` flag provided, do not follow HTTP redirects.
+			if *disableRedirects {
+				c.SetRedirectHandler(func(req *http.Request, via []*http.Request) error {
 					return http.ErrUseLastResponse
-				}
-				c.SetRedirectHandler(disableRedirectFunc)
+				})
 			}
-
 			// Set parallelism
 			c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: *threads})
 
