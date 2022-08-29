@@ -261,9 +261,9 @@ func printResult(link string, sourceName string, showSource bool, showWhere bool
 			result = "[" + sourceName + "] " + result
 		}
 
-        if showWhere && !showJson {
-            result = "[" + whereURL + "] " + result
-        }
+		if showWhere && !showJson {
+			result = "[" + whereURL + "] " + result
+		}
 
 		// If timeout occurs before goroutines are finished, recover from panic that may occur when attempting writing to results to closed results channel
 		defer func() {
