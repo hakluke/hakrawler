@@ -258,12 +258,13 @@ func printResult(link string, sourceName string, showSource bool, showWhere bool
 			})
 			result = string(bytes)
 		} else if showSource {
-		    whereResult := ""
-			if showWhere {
-			    whereResult = "[" + whereURL + "] "
-			}
-			result = whereResult + "[" + sourceName + "] " + result
+			result = "[" + sourceName + "] " + result
 		}
+
+        if showWhere && !showJson {
+            result = "[" + whereURL + "] " + result
+        }
+
 		// If timeout occurs before goroutines are finished, recover from panic that may occur when attempting writing to results to closed results channel
 		defer func() {
 			if err := recover(); err != nil {
