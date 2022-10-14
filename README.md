@@ -75,6 +75,8 @@ sudo docker run --rm -i hakluke/hakrawler --help
 ```
 ### Kali Linux: Using apt
 
+Note: This will install an older version of hakrawler without all the features, and it may be buggy. I recommend using one of the other methods.
+
 ```sh
 sudo apt install hakrawler
 ```
@@ -90,8 +92,11 @@ echo https://www.google.com | docker run --rm -i hakluke/hakrawler -subs
 Usage of hakrawler:
   -d int
     	Depth to crawl. (default 2)
+  -dr
+    	Disable following HTTP redirects.
   -h string
-    	Custom headers separated by two semi-colons. E.g. -h "Cookie: foo=bar;;Referer: http://example.com/" 
+    	Custom headers separated by two semi-colons. E.g. -h "Cookie: foo=bar;;Referer: http://example.com/"
+  -i	Only crawl inside path
   -insecure
     	Disable TLS verification.
   -json
@@ -99,7 +104,6 @@ Usage of hakrawler:
   -proxy string
     	Proxy URL. E.g. -proxy http://127.0.0.1:8080
   -s	Show the source of URL based on where it was found. E.g. href, form, script, etc.
-  -w    Show at which link the URL is found.
   -size int
     	Page size limit, in KB. (default -1)
   -subs
@@ -109,5 +113,5 @@ Usage of hakrawler:
   -timeout int
     	Maximum time to crawl each URL from stdin, in seconds. (default -1)
   -u	Show only unique urls.
-  -dr Disable following HTTP redirects.
+  -w	Show at which link the URL is found.
 ```
