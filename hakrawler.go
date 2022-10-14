@@ -127,7 +127,7 @@ func main() {
 				abs_link := e.Request.AbsoluteURL(link)
 				if strings.Contains(abs_link, url) || !*inside {
 
-					printResult(link, "href", *showSource, *showJson, results, e)
+					printResult(link, "href", *showSource, *showWhere, *showJson, results, e)
 					e.Request.Visit(link)
 				}
 			})
@@ -253,9 +253,9 @@ func printResult(link string, sourceName string, showSource bool, showWhere bool
 	whereURL := e.Request.URL.String()
 	if result != "" {
 		if showJson {
-		    where := ""
-		    if showWhere {
-			    where = whereURL
+			where := ""
+			if showWhere {
+				where = whereURL
 			}
 			bytes, _ := json.Marshal(Result{
 				Source: sourceName,
