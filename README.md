@@ -70,8 +70,8 @@ It's much easier to use the dockerhub method above, but if you'd prefer to run i
 ```
 git clone https://github.com/hakluke/hakrawler
 cd hakrawler
-docker build -t hakluke/hakrawler .
-docker run --rm -i hakluke/hakrawler --help
+sudo docker build -t hakluke/hakrawler .
+sudo docker run --rm -i hakluke/hakrawler --help
 ```
 ### Kali Linux: Using apt
 
