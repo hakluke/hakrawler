@@ -45,6 +45,7 @@ func main() {
 	proxy := flag.String(("proxy"), "", "Proxy URL. E.g. -proxy http://127.0.0.1:8080")
 	timeout := flag.Int("timeout", -1, "Maximum time to crawl each URL from stdin, in seconds.")
 	disableRedirects := flag.Bool("dr", false, "Disable following HTTP redirects.")
+	match := flag.String("match", "", "Match a specific domain apex.")
 
 	flag.Parse()
 
@@ -127,19 +128,19 @@ func main() {
 				abs_link := e.Request.AbsoluteURL(link)
 				if strings.Contains(abs_link, url) || !*inside {
 
-					printResult(link, "href", *showSource, *showWhere, *showJson, results, e)
+					printResult(link, "href", *showSource, *showWhere, *showJson, results, e, *match)
 					e.Request.Visit(link)
 				}
 			})
 
 			// find and print all the JavaScript files
 			c.OnHTML("script[src]", func(e *colly.HTMLElement) {
-				printResult(e.Attr("src"), "script", *showSource, *showWhere, *showJson, results, e)
+				printResult(e.Attr("src"), "script", *showSource, *showWhere, *showJson, results, e, *match)
 			})
 
 			// find and print all the form action URLs
 			c.OnHTML("form[action]", func(e *colly.HTMLElement) {
-				printResult(e.Attr("action"), "form", *showSource, *showWhere, *showJson, results, e)
+				printResult(e.Attr("action"), "form", *showSource, *showWhere, *showJson, results, e, *match)
 			})
 
 			// add the custom headers
@@ -248,10 +249,19 @@ func extractHostname(urlString string) (string, error) {
 }
 
 // print result constructs output lines and sends them to the results chan
-func printResult(link string, sourceName string, showSource bool, showWhere bool, showJson bool, results chan string, e *colly.HTMLElement) {
+func printResult(link string, sourceName string, showSource bool, showWhere bool, showJson bool, results chan string, e *colly.HTMLElement, match string) {
 	result := e.Request.AbsoluteURL(link)
 	whereURL := e.Request.URL.String()
 	if result != "" {
+		parsedUrl, err := url.Parse(result)
+        if err != nil {
+            log.Println("Error parsing URL:", err)
+            return
+        }
+        if match != "" && !strings.HasSuffix(parsedUrl.Hostname(), match) {
+            return
+        }
+
 		if showJson {
 			where := ""
 			if showWhere {
