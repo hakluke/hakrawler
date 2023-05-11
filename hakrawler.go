@@ -104,7 +104,7 @@ func main() {
 				// default user agent header
 				colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"),
 				// set custom headers
-				// colly.Headers(headers), for some reason this doesn't work :(
+				colly.Headers(headers)
 				// limit crawling to the domain of the specified URL
 				colly.AllowedDomains(allowed_domains...),
 				// set MaxDepth to the specified depth
