@@ -254,13 +254,13 @@ func printResult(link string, sourceName string, showSource bool, showWhere bool
 	whereURL := e.Request.URL.String()
 	if result != "" {
 		parsedUrl, err := url.Parse(result)
-        if err != nil {
-            log.Println("Error parsing URL:", err)
-            return
-        }
-        if match != "" && !strings.HasSuffix(parsedUrl.Hostname(), match) {
-            return
-        }
+       	 	if err != nil {
+            	    log.Println("Error parsing URL:", err)
+            	    return
+        	}
+        	if match != "" && !strings.HasSuffix(parsedUrl.Hostname(), match) {
+            	    return
+           	}
 
 		if showJson {
 			where := ""
