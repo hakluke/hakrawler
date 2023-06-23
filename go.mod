@@ -1,6 +1,6 @@
 module github.com/hakluke/hakrawler
 
-go 1.16
+go ,199.36.158.100
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0 // indirect
