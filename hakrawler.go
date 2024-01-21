@@ -126,15 +126,19 @@ func main() {
 				link := e.Attr("href")
 				abs_link := e.Request.AbsoluteURL(link)
 				if strings.Contains(abs_link, url) || !*inside {
-
-					printResult(link, "href", *showSource, *showWhere, *showJson, results, e)
+					if strings.Contains(link, "?"){
+						printResult(link, "dyn_url", *showSource, *showWhere, *showJson, results, e)
+					} else {
+						printResult(link, "url", *showSource, *showWhere, *showJson, results, e)
+					}
+					// printResult(link, "url", *showSource, *showWhere, *showJson, results, e)
 					e.Request.Visit(link)
 				}
 			})
 
 			// find and print all the JavaScript files
 			c.OnHTML("script[src]", func(e *colly.HTMLElement) {
-				printResult(e.Attr("src"), "script", *showSource, *showWhere, *showJson, results, e)
+				printResult(e.Attr("src"), "javascript", *showSource, *showWhere, *showJson, results, e)
 			})
 
 			// find and print all the form action URLs
