@@ -128,6 +128,8 @@ func main() {
 				if strings.Contains(abs_link, url) || !*inside {
 					if strings.Contains(link, "?"){
 						printResult(link, "dyn_url", *showSource, *showWhere, *showJson, results, e)
+					} else if strings.Contains(link, ".js"){
+						printResult(link, "javascript", *showSource, *showWhere, *showJson, results, e)
 					} else {
 						printResult(link, "url", *showSource, *showWhere, *showJson, results, e)
 					}
