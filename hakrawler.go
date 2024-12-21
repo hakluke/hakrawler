@@ -200,17 +200,23 @@ func main() {
 
 	w := bufio.NewWriter(os.Stdout)
 	defer w.Flush()
+	urlsFound := false
 	if *unique {
 		for res := range results {
 			if isUnique(res) {
 				fmt.Fprintln(w, res)
+				urlsFound = true
 			}
 		}
 	}
 	for res := range results {
 		fmt.Fprintln(w, res)
+		urlsFound = true
 	}
 
+	if !urlsFound {
+		fmt.Fprintln(os.Stderr, "No URLs were found. This usually happens when a domain is specified (https://example.com), but it redirects to a subdomain (https://www.example.com). The subdomain is not included in the scope, so the no URLs are printed. In order to overcome this, either specify the final URL in the redirect chain or use the -subs option to include subdomains.")
+	}
 }
 
 // parseHeaders does validation of headers input and saves it to a formatted map.
