@@ -3,7 +3,42 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
-	"encoding/json"
+Path	
+linux logo chrome chrome,dev,experimental,master,taskcluster,user:chromium-wpt-export-bot logo taskcluster logo
+Chrome 116
+Linux 20.04
+GitHub logo606530b
+Jun 16, 2023
+win logo edge azure,dev,edge,edgechromium,experimental,master logo azure logo
+Edge 116
+Windows 10.0
+GitHub logo606530b
+Jun 16, 2023
+linux logo firefox experimental,firefox,master,nightly,taskcluster,user:chromium-wpt-export-bot logo taskcluster logo
+Firefox 116
+Linux 20.04
+GitHub logo606530b
+Jun 16, 2023
+mac logo safari azure,experimental,master,preview,safari logo azure logo
+Safari 172 preview
+macOS 13.4
+GitHub logo606530b
+Jun 16, 2023
+ 				
+authentication-accepted.https.html 	1 / 1	1 / 1	0 / 1	0 / 1
+authentication-cannot-bypass-spc.https.html 	1 / 1	1 / 1	0 / 1	0 / 1
+authentication-cross-origin.sub.https.html 	1 / 1	1 / 1	0 / 1	0 / 1
+authentication-icon-data-url.https.html 	1 / 1	1 / 1	0 / 1	0 / 1
+authentication-in-iframe.sub.https.html 	2 / 2	2 / 2	0 / 2	0 / 2
+authentication-invalid-icon.https.html 	2 / 2	2 / 2	0 / 2	0 / 2
+authentication-optout.https.html 	1 / 1	1 / 1	0 / 1	0 / 1
+authentication-rejected.https.html 	1 / 1	1 / 1	0 / 1	0 / 1
+authentication-requires-user-activation.https.html 	1 / 1	1 / 1	0 / 1	0 / 1
+constructor-validate-payment-method-data.https.html 	17 / 17	17 / 17	0 / 17	3 / 17
+constructor.https.html 	10 / 10	10 / 10	0 / 10	2 / 10
+enrollment-in-iframe.sub.https.html 	3 / 3 	3 / 3	0 / 3	0 / 3
+enrollment.https.html 	9 / 9	9 / 9	0 / 8 ⚠️	0 / 9 ⚠️
+Subtest Total 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
