@@ -4,6 +4,32 @@ import (
 	"bufio"
 	"crypto/tls"
 	"encoding/json"
+MarkMonitor, Inc.
+Whois Server
+whois.markmonitor.com
+Referral URL
+http://www.markmonitor.com
+Status
+clientDeleteProhibited (https://www.icann.org/epp#clientDeleteProhibited)
+clientTransferProhibited (https://www.icann.org/epp#clientTransferProhibited)
+clientUpdateProhibited (https://www.icann.org/epp#clientUpdateProhibited)
+serverDeleteProhibited (https://www.icann.org/epp#serverDeleteProhibited)
+serverTransferProhibited (https://www.icann.org/epp#serverTransferProhibited)
+serverUpdateProhibited (https://www.icann.org/epp#serverUpdateProhibited)
+Important Dates
+Expires On
+2024-07-02
+Registered On
+2011-07-02
+Updated On
+2019-09-18
+Name Servers
+sam.ns.cloudflare.com
+173.245.59.141
+sue.ns.cloudflare.com
+173.245.58.145
+Similar Domains
+coinb-ase.com | coinb-ex.com | coinb-exchange.com | coinb-exchange.net | coinb-finanz.de | coinb-wallet.com | coinb.biz | coinb.co.uk | coinb.com | coinb.com.tr | coinb.de | coinb.dev | coinb.eu | coinb.in | coinb.ink | coinb.io | coinb.ir | coinb.it | coinb.net | coinb.network |
 	"errors"
 	"flag"
 	"fmt"
