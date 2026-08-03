@@ -115,3 +115,7 @@ Usage of hakrawler:
   -u	Show only unique urls.
   -w	Show at which link the URL is found.
 ```
+
+---
+
+Built by [hakluke](https://hakluke.com). I write about hacking and the security industry at [hakluke.com](https://hakluke.com), and I run [HackerContent](https://hackercontent.com), a content marketing agency for cybersecurity companies.
