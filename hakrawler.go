@@ -27,9 +27,6 @@ type Result struct {
 
 var headers map[string]string
 
-// Thread safe map
-var sm sync.Map
-
 func main() {
 	inside := flag.Bool("i", false, "Only crawl inside path")
 	threads := flag.Int("t", 8, "Number of threads to utilise.")
@@ -40,9 +37,9 @@ func main() {
 	showJson := flag.Bool("json", false, "Output as JSON.")
 	showSource := flag.Bool("s", false, "Show the source of URL based on where it was found. E.g. href, form, script, etc.")
 	showWhere := flag.Bool("w", false, "Show at which link the URL is found.")
-	rawHeaders := flag.String(("h"), "", "Custom headers separated by two semi-colons. E.g. -h \"Cookie: foo=bar;;Referer: http://example.com/\" ")
-	unique := flag.Bool(("u"), false, "Show only unique urls.")
-	proxy := flag.String(("proxy"), "", "Proxy URL. E.g. -proxy http://127.0.0.1:8080")
+	rawHeaders := flag.String("h", "", "Custom headers separated by two semi-colons. E.g. -h \"Cookie: foo=bar;;Referer: http://example.com/\" ")
+	unique := flag.Bool("u", false, "Show only unique urls.")
+	proxy := flag.String("proxy", "", "Proxy URL. E.g. -proxy http://127.0.0.1:8080")
 	timeout := flag.Int("timeout", -1, "Maximum time to crawl each URL from stdin, in seconds.")
 	disableRedirects := flag.Bool("dr", false, "Disable following HTTP redirects.")
 
@@ -53,163 +50,165 @@ func main() {
 	}
 	proxyURL, _ := url.Parse(os.Getenv("PROXY"))
 
-	// Convert the headers input to a usable map (or die trying)
 	err := parseHeaders(*rawHeaders)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error parsing headers:", err)
 		os.Exit(1)
 	}
 
-	// Check for stdin input
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) != 0 {
 		fmt.Fprintln(os.Stderr, "No urls detected. Hint: cat urls.txt | hakrawler")
 		os.Exit(1)
 	}
 
+	transport := &http.Transport{
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: *insecure},
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+	}
+	if proxyURL != nil {
+		transport.Proxy = http.ProxyURL(proxyURL)
+	}
+
+	regexMu := sync.Mutex{}
+	regexCache := make(map[string]*regexp.Regexp)
+
+	done := make(chan struct{})
+	inputURLs := make(chan string, *threads*2)
 	results := make(chan string, *threads)
+
 	go func() {
-		// get each line of stdin, push it to the work channel
 		s := bufio.NewScanner(os.Stdin)
 		for s.Scan() {
-			url := s.Text()
-			hostname, err := extractHostname(url)
-			if err != nil {
-				log.Println("Error parsing URL:", err)
-				continue
-			}
+			inputURLs <- s.Text()
+		}
+		close(inputURLs)
+	}()
 
-			allowed_domains := []string{hostname}
-			// if "Host" header is set, append it to allowed domains
-			if headers != nil {
-				if val, ok := headers["Host"]; ok {
-					allowed_domains = append(allowed_domains, val)
+	var wg sync.WaitGroup
+	for i := 0; i < *threads; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for rawURL := range inputURLs {
+				hostname, err := extractHostname(rawURL)
+				if err != nil {
+					log.Println("Error parsing URL:", err)
+					continue
 				}
-			}
 
-			// Instantiate default collector
-			c := colly.NewCollector(
-				// default user agent header
-				colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"),
-				// set custom headers
-				colly.Headers(headers),
-				// limit crawling to the domain of the specified URL
-				colly.AllowedDomains(allowed_domains...),
-				// set MaxDepth to the specified depth
-				colly.MaxDepth(*depth),
-				// specify Async for threading
-				colly.Async(true),
-			)
-
-			// set a page size limit
-			if *maxSize != -1 {
-				c.MaxBodySize = *maxSize * 1024
-			}
-
-			// if -subs is present, use regex to filter out subdomains in scope.
-			if *subsInScope {
-				c.AllowedDomains = nil
-				c.URLFilters = []*regexp.Regexp{regexp.MustCompile(".*(\\.|\\/\\/)" + strings.ReplaceAll(hostname, ".", "\\.") + "((#|\\/|\\?).*)?")}
-			}
-
-			// If `-dr` flag provided, do not follow HTTP redirects.
-			if *disableRedirects {
-				c.SetRedirectHandler(func(req *http.Request, via []*http.Request) error {
-					return http.ErrUseLastResponse
-				})
-			}
-			// Set parallelism
-			c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: *threads})
-
-			// Print every href found, and visit it
-			c.OnHTML("a[href]", func(e *colly.HTMLElement) {
-				link := e.Attr("href")
-				abs_link := e.Request.AbsoluteURL(link)
-				if strings.Contains(abs_link, url) || !*inside {
-
-					printResult(link, "href", *showSource, *showWhere, *showJson, results, e)
-					e.Request.Visit(link)
+				allowedDomains := []string{hostname}
+				if headers != nil {
+					if val, ok := headers["Host"]; ok {
+						allowedDomains = append(allowedDomains, val)
+					}
 				}
-			})
 
-			// find and print all the JavaScript files
-			c.OnHTML("script[src]", func(e *colly.HTMLElement) {
-				printResult(e.Attr("src"), "script", *showSource, *showWhere, *showJson, results, e)
-			})
+				c := colly.NewCollector(
+					colly.UserAgent("Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"),
+					colly.Headers(headers),
+					colly.AllowedDomains(allowedDomains...),
+					colly.MaxDepth(*depth),
+					colly.Async(true),
+				)
 
-			// find and print all the form action URLs
-			c.OnHTML("form[action]", func(e *colly.HTMLElement) {
-				printResult(e.Attr("action"), "form", *showSource, *showWhere, *showJson, results, e)
-			})
+				if *maxSize != -1 {
+					c.MaxBodySize = *maxSize * 1024
+				}
 
-			// add the custom headers
-			if headers != nil {
-				c.OnRequest(func(r *colly.Request) {
-					for header, value := range headers {
-						r.Headers.Set(header, value)
+				if *subsInScope {
+					c.AllowedDomains = nil
+					regexMu.Lock()
+					r, ok := regexCache[hostname]
+					if !ok {
+						r = regexp.MustCompile(".*(\\.|\\/\\/)" + strings.ReplaceAll(hostname, ".", "\\.") + "((#|\\/|\\?).*)?")
+						regexCache[hostname] = r
+					}
+					regexMu.Unlock()
+					c.URLFilters = []*regexp.Regexp{r}
+				}
+
+				if *disableRedirects {
+					c.SetRedirectHandler(func(req *http.Request, via []*http.Request) error {
+						return http.ErrUseLastResponse
+					})
+				}
+
+				c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: *threads})
+
+				targetURL := rawURL
+
+				c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+					link := e.Attr("href")
+					absLink := e.Request.AbsoluteURL(link)
+					if strings.Contains(absLink, targetURL) || !*inside {
+						printResult(link, "href", *showSource, *showWhere, *showJson, results, done, e)
+						e.Request.Visit(link)
 					}
 				})
-			}
 
-			if *proxy != "" {
-				// Skip TLS verification for proxy, if -insecure specified
-				c.WithTransport(&http.Transport{
-					Proxy:           http.ProxyURL(proxyURL),
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
+				c.OnHTML("script[src]", func(e *colly.HTMLElement) {
+					printResult(e.Attr("src"), "script", *showSource, *showWhere, *showJson, results, done, e)
 				})
-			} else {
-				// Skip TLS verification if -insecure flag is present
+
+				c.OnHTML("form[action]", func(e *colly.HTMLElement) {
+					printResult(e.Attr("action"), "form", *showSource, *showWhere, *showJson, results, done, e)
+				})
+
+				if headers != nil {
+					c.OnRequest(func(r *colly.Request) {
+						for header, value := range headers {
+							r.Headers.Set(header, value)
+						}
+					})
+				}
+
 				c.WithTransport(&http.Transport{
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: *insecure},
+					MaxIdleConns: 100,
+					MaxIdleConnsPerHost: 10,
+					IdleConnTimeout: 90 * time.Second,
 				})
-			}
 
-			if *timeout == -1 {
-				// Start scraping
-				c.Visit(url)
-				// Wait until threads are finished
-				c.Wait()
-			} else {
-				finished := make(chan int, 1)
-
-				go func() {
-					// Start scraping
-					c.Visit(url)
-					// Wait until threads are finished
+				if *timeout == -1 {
+					c.Visit(rawURL)
 					c.Wait()
-					finished <- 0
-				}()
-
-				select {
-				case _ = <-finished: // the crawling finished before the timeout
-					close(finished)
-					continue
-				case <-time.After(time.Duration(*timeout) * time.Second): // timeout reached
-					log.Println("[timeout] " + url)
-					continue
-
+				} else {
+					finished := make(chan struct{}, 1)
+					go func() {
+						c.Visit(rawURL)
+						c.Wait()
+						finished <- struct{}{}
+					}()
+					select {
+					case <-finished:
+					case <-time.After(time.Duration(*timeout) * time.Second):
+						log.Println("[timeout] " + rawURL)
+					}
 				}
 			}
+		}()
+	}
 
-		}
-		if err := s.Err(); err != nil {
-			fmt.Fprintln(os.Stderr, "reading standard input:", err)
-		}
+	go func() {
+		wg.Wait()
+		close(done)
 		close(results)
 	}()
 
 	w := bufio.NewWriter(os.Stdout)
 	defer w.Flush()
+	seen := make(map[string]struct{})
 	urlsFound := false
-	if *unique {
-		for res := range results {
-			if isUnique(res) {
-				fmt.Fprintln(w, res)
-				urlsFound = true
-			}
-		}
-	}
 	for res := range results {
+		if *unique {
+			if _, ok := seen[res]; ok {
+				continue
+			}
+			seen[res] = struct{}{}
+		}
 		fmt.Fprintln(w, res)
 		urlsFound = true
 	}
@@ -243,18 +242,17 @@ func parseHeaders(rawHeaders string) error {
 	return nil
 }
 
-// extractHostname() extracts the hostname from a URL and returns it
+// extractHostname extracts the hostname from a URL and returns it.
 func extractHostname(urlString string) (string, error) {
 	u, err := url.Parse(urlString)
 	if err != nil || !u.IsAbs() {
 		return "", errors.New("Input must be a valid absolute URL")
 	}
-
 	return u.Hostname(), nil
 }
 
-// print result constructs output lines and sends them to the results chan
-func printResult(link string, sourceName string, showSource bool, showWhere bool, showJson bool, results chan string, e *colly.HTMLElement) {
+// printResult constructs output lines and sends them to the results channel.
+func printResult(link string, sourceName string, showSource bool, showWhere bool, showJson bool, results chan string, done chan struct{}, e *colly.HTMLElement) {
 	result := e.Request.AbsoluteURL(link)
 	whereURL := e.Request.URL.String()
 	if result != "" {
@@ -277,22 +275,9 @@ func printResult(link string, sourceName string, showSource bool, showWhere bool
 			result = "[" + whereURL + "] " + result
 		}
 
-		// If timeout occurs before goroutines are finished, recover from panic that may occur when attempting writing to results to closed results channel
-		defer func() {
-			if err := recover(); err != nil {
-				return
-			}
-		}()
-		results <- result
+		select {
+		case results <- result:
+		case <-done:
+		}
 	}
-}
-
-// returns whether the supplied url is unique or not
-func isUnique(url string) bool {
-	_, present := sm.Load(url)
-	if present {
-		return false
-	}
-	sm.Store(url, true)
-	return true
 }

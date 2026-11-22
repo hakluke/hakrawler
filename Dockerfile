@@ -1,10 +1,12 @@
-FROM golang:1.17
+FROM golang:1.27-alpine AS builder
 
-
-WORKDIR /go/src/hakrawler
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /hakrawler .
 
-RUN go get -d -v ./...
-RUN go install -v ./...
-
+FROM alpine:3.20
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /hakrawler /usr/local/bin/hakrawler
 ENTRYPOINT ["hakrawler"]
